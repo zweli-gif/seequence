@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>Seequence</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --black: #000000;
+  --white: #FFFFFF;
+  --yellow: #FFD600;
+  --grey-dot: #555555;
+  --grey-light: #888888;
+  --cyan: #00BFFF;
+  --amber: #FF8C00;
+  --green: #4CAF50;
+  --font: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --safe-top: env(safe-area-inset-top, 24px);
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== SCREEN CONTAINER ===== */
+#screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== LOGO HEADER ===== */
+#header {
+  padding: calc(var(--safe-top) + 16px) 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  flex-shrink: 0;
+}
+#header.visible { opacity: 1; }
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.logo-icon svg { width: 100%; height: 100%; }
+
+#logo-label {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* ===== MAIN CONTENT ===== */
+#content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 28px;
+  text-align: center;
+  position: relative;
+  min-height: 0;
+}
+
+#main-text {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--white);
+  max-width: 360px;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  word-wrap: break-word;
+}
+#main-text.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+#main-text .bold { font-weight: 700; }
+#main-text .highlight { color: var(--yellow); font-weight: 700; }
+#main-text .action { color: var(--cyan); font-weight: 700; }
+
+/* ===== PAGE DOTS ===== */
+#dots {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 24px 24px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+#dots.visible { opacity: 1; }
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--grey-dot);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+.dot.active {
+  background: var(--yellow);
+  transform: scale(1.15);
+}
+.dot.section-app { /* for app context */ }
+.dot.section-web { /* for web context */ }
+
+/* ===== LISTENING OVERLAY ===== */
+#listening {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  background: rgba(0,0,0,0.85);
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#listening.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#listen-ring {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid var(--cyan);
+  animation: ring-pulse 1.2s ease-in-out infinite;
+}
+@keyframes ring-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+#listen-label {
+  font-size: 18px;
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+/* ===== CONFIRM OVERLAY ===== */
+#confirm-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  background: rgba(0,0,0,0.9);
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#confirm-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+#confirm-name-display {
+  font-size: 36px;
+  font-weight: 700;
+}
+#confirm-prompt {
+  font-size: 18px;
+  color: var(--grey-light);
+  line-height: 1.5;
+}
+.confirm-actions {
+  display: flex;
+  gap: 48px;
+}
+.confirm-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.confirm-btn .icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+.confirm-btn.yes .icon { background: var(--yellow); color: var(--black); }
+.confirm-btn.no .icon { background: var(--grey-dot); color: var(--white); }
+.confirm-btn .lbl { font-size: 14px; font-weight: 600; color: var(--grey-light); }
+
+/* ===== START OVERLAY ===== */
+#start-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--black);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 48px;
+  z-index: 200;
+  cursor: pointer;
+}
+#start-overlay.hidden { display: none; }
+
+#start-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+#start-logo .logo-icon { width: 72px; height: 72px; }
+#start-logo .logo-name {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+#start-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: start-breathe 2.5s ease-in-out infinite;
+}
+@keyframes start-breathe {
+  0%, 100% { transform: scale(1); border-color: rgba(255,255,255,0.15); }
+  50% { transform: scale(1.05); border-color: rgba(255,255,255,0.3); }
+}
+#start-circle .inner {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--yellow);
+}
+#start-text {
+  font-size: 16px;
+  color: var(--grey-light);
+  font-weight: 400;
+}
+
+/* ===== GESTURE FLASH ===== */
+#gesture-flash {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: opacity 0.12s, transform 0.12s;
+}
+#gesture-flash.show {
+  opacity: 0.35;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ===== HAPTIC INDICATOR (visual) ===== */
+#haptic-indicator {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  letter-spacing: 1px;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+#haptic-indicator.show { opacity: 0.7; }
+
+/* ===== SPEAKER INDICATOR ===== */
+#speaker {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 32px);
+  right: 20px;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 40;
+}
+#speaker.active { opacity: 0.4; }
+#speaker svg { width: 100%; height: 100%; fill: var(--grey-light); }
+
+/* ===== DEV STRIP ===== */
+#dev-strip {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(15,15,15,0.95);
+  border-top: 1px solid #222;
+  padding: 6px 12px calc(var(--safe-bottom) + 4px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 10px;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  z-index: 100;
+}
+.dtag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #1a1a1a;
+  white-space: nowrap;
+}
+.dtag .l { color: #555; }
+.dtag .v { color: #aaa; font-weight: 600; }
+.dtag.j .v { color: var(--cyan); }
+.dtag.h .v { color: var(--amber); }
+.dtag.g .v { color: #66ff66; }
+.dtag.c .v { color: var(--yellow); }
+
+/* ===== CONTEXT BAR ===== */
+#context-bar {
+  position: fixed;
+  top: calc(var(--safe-top) + 60px);
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--grey-light);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 30;
+  pointer-events: none;
+}
+#context-bar.visible { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<!-- Start overlay -->
+<div id="start-overlay">
+  <div id="start-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="18" r="12" fill="white"/>
+        <path d="M50 35 C30 35 20 55 30 70 L45 95 C47 99 53 99 55 95 L70 70 C80 55 70 35 50 35Z" fill="white"/>
+        <path d="M28 48 L10 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <path d="M72 48 L90 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="logo-name">Seequence</div>
+  </div>
+  <div id="start-circle"><div class="inner"></div></div>
+  <div id="start-text">Tap anywhere to begin</div>
+</div>
+
+<!-- Main screen -->
+<div id="screen">
+  <div id="header">
+    <div class="logo-icon">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="18" r="12" fill="white"/>
+        <path d="M50 35 C30 35 20 55 30 70 L45 95 C47 99 53 99 55 95 L70 70 C80 55 70 35 50 35Z" fill="white"/>
+        <path d="M28 48 L10 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <path d="M72 48 L90 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div id="logo-label">Seequence</div>
+  </div>
+
+  <div id="context-bar"></div>
+
+  <div id="content">
+    <div id="main-text"></div>
+  </div>
+
+  <div id="dots">
+    <div class="dot" id="dot0"></div>
+    <div class="dot" id="dot1"></div>
+    <div class="dot" id="dot2"></div>
+  </div>
+
+  <!-- Listening overlay -->
+  <div id="listening">
+    <div id="listen-ring"></div>
+    <div id="listen-label">Listening...</div>
+  </div>
+
+  <!-- Confirm overlay -->
+  <div id="confirm-overlay">
+    <div id="confirm-name-display"></div>
+    <div id="confirm-prompt">Is that correct?</div>
+    <div class="confirm-actions">
+      <div class="confirm-btn yes">
+        <div class="icon">&#10003;</div>
+        <div class="lbl">Tap = Yes</div>
+      </div>
+      <div class="confirm-btn no">
+        <div class="icon">&#10007;</div>
+        <div class="lbl">Double = No</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gesture flash -->
+<div id="gesture-flash"></div>
+
+<!-- Haptic indicator -->
+<div id="haptic-indicator"></div>
+
+<!-- Speaker -->
+<div id="speaker">
+  <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+</div>
+
+<!-- Dev strip -->
+<div id="dev-strip">
+  <div class="dtag j"><span class="l">J:</span><span class="v" id="dj">-</span></div>
+  <div class="dtag"><span class="l">S:</span><span class="v" id="ds">-</span></div>
+  <div class="dtag g"><span class="l">G:</span><span class="v" id="dg">-</span></div>
+  <div class="dtag h"><span class="l">H:</span><span class="v" id="dh">-</span></div>
+  <div class="dtag c"><span class="l">Ctx:</span><span class="v" id="dc">-</span></div>
+</div>
+
+<script>
+// ================================================================
+// SEEQUENCE PROTOTYPE - FULL 9-JOURNEY BUILD
+// ================================================================
+
+// ===== CONFIG =====
+const CFG = {
+  speechRate: 0.9,
+  speechPitch: 1.0,
+  voiceKeywords: ['samantha','karen','moira','tessa','google uk','english united kingdom','english'],
+  doubleTapDelay: 300,
+  longPressTime: 550,
+  swipeThreshold: 55,
+  twoFingerThreshold: 45,
+};
+
+// ===== DEMO DATA =====
+const DEMO = {
+  userName: null,
+  apps: {
+    communication: ['WhatsApp', 'Phone', 'Gmail'],
+    mobility: ['Uber'],
+    finance: ['FNB', 'Capitec'],
+    utilities: ['Settings', 'Calculator'],
+  },
+  customCategories: [],
+  uberHome: '12 Main Road, Rosebank',
+  uberWork: '44 Sandton Drive, Sandton',
+  websites: ['BBC', 'News24', 'Daily Maverick'],
+  bbcArticles: [
+    {
+      headline: 'South Africa launches new renewable energy programme',
+      paragraphs: [
+        'South Africa has announced a landmark renewable energy programme that aims to add 10 gigawatts of clean power capacity over the next five years.',
+        'The initiative comes as the country continues to grapple with rolling blackouts that have plagued businesses and households for years.',
+        'Energy Minister announced the programme at a press conference in Pretoria, saying it would create over fifty thousand jobs in the construction and maintenance of solar and wind facilities.',
+        'International investors have welcomed the move, with several major development banks signalling their willingness to provide financing for the ambitious programme.',
+        'Environmental groups have praised the initiative but urged the government to also address the phase-out of coal-fired power stations, which currently provide the majority of the country\'s electricity.'
+      ]
+    },
+    {
+      headline: 'Springboks announce squad for upcoming test series',
+      paragraphs: [
+        'The Springboks have named a thirty-two man squad for the upcoming test series against the British and Irish Lions.',
+        'Head coach confirmed several exciting new selections alongside experienced campaigners who have been the backbone of the team\'s recent success.',
+        'The squad will assemble in Cape Town next week for a training camp before the first test at Loftus Versfeld in Pretoria.'
+      ]
+    },
+    {
+      headline: 'Cape Town named among world\'s top destinations for twenty twenty six',
+      paragraphs: [
+        'Cape Town has once again been recognised as one of the world\'s top travel destinations, earning a spot in a prestigious international ranking for twenty twenty six.',
+        'The Mother City was praised for its combination of natural beauty, world-class dining, cultural attractions, and improved safety infrastructure.',
+        'Tourism officials say the recognition is expected to boost visitor numbers significantly in the coming year.'
+      ]
+    }
+  ]
+};
+
+// ===== STATE =====
+const S = {
+  journey: null,
+  phase: null,
+  step: null,
+  homePos: 'app_library',
+  catIdx: 0,
+  categories: ['Communication', 'Mobility', 'Finance', 'Utilities'],
+  appIdx: 0,
+  appsInCat: [],
+  webIdx: 0,
+  artIdx: 0,
+  paraIdx: 0,
+  setupCat: null,
+  setupApps: [],
+  addingTo: null,
+  pendingInput: null,
+  pendingValue: null,
+  uberDestIdx: 0,
+  uberDests: ['Home', 'Work'],
+  audioUnlocked: false,
+  speaking: false,
+  awaitGesture: null,
+  gestureStep: 0,
+  listening: false,
+  confirming: false,
+  confirmCtx: null,
+  currentContext: 'home', // home | app | web
+};
+
+// ===== HAPTIC ENGINE =====
+// 1 pulse = home, 2 pulses = app, 3 pulses = web, long buzz = confirm
+const Haptic = {
+  fire(type) {
+    const labels = {
+      home: '| Home (1 pulse)',
+      app: '|| App (2 pulses)',
+      web: '||| Web (3 pulses)',
+      confirm: '~~~~ Confirm (long)',
+      nav: '. Nav (tap)',
+    };
+    // Dev display
+    const el = document.getElementById('dh');
+    if (el) el.textContent = labels[type] || type;
+    // Visual indicator
+    this._showVisual(labels[type] || type);
+    // Real vibration
+    if (navigator.vibrate) {
+      const patterns = {
+        home: [100],                        // 1 pulse
+        app: [80, 60, 80],                  // 2 pulses
+        web: [70, 50, 70, 50, 70],          // 3 pulses
+        confirm: [400],                      // long buzz
+        nav: [50],                           // light tap
+      };
+      try { navigator.vibrate(patterns[type] || [50]); } catch(e) {}
+    }
+  },
+  _showVisual(label) {
+    const el = document.getElementById('haptic-indicator');
+    el.textContent = label;
+    el.classList.add('show');
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => el.classList.remove('show'), 1200);
+  },
+  _timer: null,
+};
+
+// ===== CONTEXT HAPTIC (fires based on where you are) =====
+function contextHaptic(ctx) {
+  S.currentContext = ctx || S.currentContext;
+  if (ctx === 'home') Haptic.fire('home');
+  else if (ctx === 'app') Haptic.fire('app');
+  else if (ctx === 'web') Haptic.fire('web');
+}
+
+// ===== TONES =====
+const Tones = {
+  ctx: null,
+  init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+  play(type) {
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.connect(g); g.connect(this.ctx.destination);
+    const t = this.ctx.currentTime;
+    if (type === 'chime') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(523,t); o.frequency.setValueAtTime(659,t+0.12); o.frequency.setValueAtTime(784,t+0.24);
+      g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.5);
+      o.start(t); o.stop(t+0.5);
+    } else if (type === 'tone') {
+      o.type = 'sine'; o.frequency.setValueAtTime(440,t);
+      g.gain.setValueAtTime(0.18,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.6);
+      o.start(t); o.stop(t+0.6);
+    } else if (type === 'success') {
+      o.type = 'sine'; o.frequency.setValueAtTime(523,t); o.frequency.setValueAtTime(784,t+0.15);
+      g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.4);
+      o.start(t); o.stop(t+0.4);
+    } else if (type === 'click') {
+      o.type = 'sine'; o.frequency.setValueAtTime(600,t);
+      g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.08);
+      o.start(t); o.stop(t+0.08);
+    }
+  }
+};
+
+// ===== SPEECH SYNTHESIS =====
+const TTS = {
+  synth: window.speechSynthesis,
+  voice: null,
+  queue: [],
+  busy: false,
+  warmed: false,
+
+  init() {
+    const find = () => {
+      const voices = this.synth.getVoices();
+      for (const kw of CFG.voiceKeywords) {
+        const v = voices.find(v => v.name.toLowerCase().includes(kw) && v.lang.startsWith('en'));
+        if (v) { this.voice = v; return; }
+      }
+      const en = voices.find(v => v.lang.startsWith('en'));
+      if (en) this.voice = en;
+    };
+    find();
+    if (this.synth.onvoiceschanged !== undefined) this.synth.onvoiceschanged = find;
+  },
+
+  warmup() {
+    if (this.warmed) return;
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0.01;
+    this.synth.speak(u);
+    this.warmed = true;
+  },
+
+  stop() {
+    this.synth.cancel();
+    this.queue = [];
+    this.busy = false;
+    S.speaking = false;
+    UI.setSpeaking(false);
+  },
+
+  speak(text, cb) {
+    this.queue.push({ text, cb });
+    if (!this.busy) this._next();
+  },
+
+  _next() {
+    if (!this.queue.length) { this.busy = false; S.speaking = false; UI.setSpeaking(false); return; }
+    this.busy = true; S.speaking = true; UI.setSpeaking(true);
+    const { text, cb } = this.queue.shift();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = CFG.speechRate; u.pitch = CFG.speechPitch;
+    if (this.voice) u.voice = this.voice;
+    u.onend = () => { if (cb) cb(); setTimeout(() => this._next(), 180); };
+    u.onerror = () => { if (cb) cb(); setTimeout(() => this._next(), 180); };
+    this.synth.cancel();
+    setTimeout(() => this.synth.speak(u), 40);
+  }
+};
+
+// ===== SPEECH RECOGNITION =====
+const STT = {
+  rec: null,
+  ok: false,
+
+  init() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    this.rec = new SR();
+    this.rec.continuous = false;
+    this.rec.interimResults = false;
+    this.rec.lang = 'en-ZA';
+    this.ok = true;
+
+    this.rec.onresult = (e) => {
+      const r = e.results[0][0].transcript.trim();
+      UI.hideListening();
+      S.listening = false;
+      Flow.onSpeechResult(r);
+    };
+    this.rec.onerror = () => {
+      UI.hideListening();
+      S.listening = false;
+      Flow.onSpeechFallback();
+    };
+    this.rec.onend = () => {
+      if (S.listening) {
+        UI.hideListening();
+        S.listening = false;
+        Flow.onSpeechFallback();
+      }
+    };
+  },
+
+  listen() {
+    S.listening = true;
+    UI.showListening();
+    if (this.ok) {
+      try { this.rec.start(); }
+      catch(e) {
+        this.rec.stop();
+        setTimeout(() => { try { this.rec.start(); } catch(e2) { Flow.onSpeechFallback(); } }, 200);
+      }
+    } else {
+      setTimeout(() => { UI.hideListening(); S.listening = false; Flow.onSpeechFallback(); }, 2500);
+    }
+  },
+
+  stop() {
+    if (this.rec) try { this.rec.stop(); } catch(e) {}
+    S.listening = false;
+    UI.hideListening();
+  }
+};
+
+// ===== UI =====
+const UI = {
+  init() {
+    this.mainText = document.getElementById('main-text');
+    this.header = document.getElementById('header');
+    this.dots = document.getElementById('dots');
+    this.contextBar = document.getElementById('context-bar');
+    this.listeningEl = document.getElementById('listening');
+    this.confirmEl = document.getElementById('confirm-overlay');
+    this.confirmNameEl = document.getElementById('confirm-name-display');
+    this.speakerEl = document.getElementById('speaker');
+    this.flashEl = document.getElementById('gesture-flash');
+  },
+
+  showText(text) {
+    this.mainText.classList.remove('visible');
+    setTimeout(() => {
+      // Parse [text] as bold highlights and {text} as action highlights
+      let html = text
+        .replace(/\[([^\]]+)\]/g, '<span class="bold">$1</span>')
+        .replace(/\{([^}]+)\}/g, '<span class="action">$1</span>');
+      this.mainText.innerHTML = html;
+      this.mainText.classList.add('visible');
+    }, 60);
+  },
+
+  clearText() {
+    this.mainText.classList.remove('visible');
+    setTimeout(() => { this.mainText.innerHTML = ''; }, 300);
+  },
+
+  showHeader() { this.header.classList.add('visible'); },
+  hideHeader() { this.header.classList.remove('visible'); },
+
+  showDots() { this.dots.classList.add('visible'); },
+  hideDots() { this.dots.classList.remove('visible'); },
+
+  setDots(active, total) {
+    // Update dots: show 'total' dots, highlight 'active' (0-indexed)
+    const d = [document.getElementById('dot0'), document.getElementById('dot1'), document.getElementById('dot2')];
+    d.forEach((dot, i) => {
+      if (i < total) { dot.style.display = 'block'; dot.classList.toggle('active', i === active); }
+      else { dot.style.display = 'none'; }
+    });
+    this.showDots();
+  },
+
+  setContext(text) {
+    this.contextBar.textContent = text;
+    this.contextBar.classList.toggle('visible', !!text);
+    const dc = document.getElementById('dc');
+    if (dc) dc.textContent = text || '-';
+  },
+
+  showListening() { this.listeningEl.classList.add('active'); },
+  hideListening() { this.listeningEl.classList.remove('active'); },
+
+  showConfirm(name) {
+    this.confirmNameEl.textContent = name;
+    this.confirmEl.classList.add('active');
+  },
+  hideConfirm() { this.confirmEl.classList.remove('active'); },
+
+  setSpeaking(is) { this.speakerEl.classList.toggle('active', is); },
+
+  flashGesture(name) {
+    this.flashEl.textContent = name;
+    this.flashEl.classList.add('show');
+    clearTimeout(this._flashTimer);
+    this._flashTimer = setTimeout(() => this.flashEl.classList.remove('show'), 450);
+  },
+
+  setDev(j, s, g) {
+    if (j !== undefined) document.getElementById('dj').textContent = j;
+    if (s !== undefined) document.getElementById('ds').textContent = s;
+    if (g !== undefined) document.getElementById('dg').textContent = g;
+  },
+};
+
+// ===== GESTURES =====
+const Gest = {
+  sx: 0, sy: 0, st: 0,
+  tapCount: 0, tapTimer: null, lpTimer: null,
+  isLP: false, twoF: null, is2F: false,
+
+  init() {
+    const el = document.getElementById('screen');
+    el.addEventListener('touchstart', this.onTS.bind(this), { passive: false });
+    el.addEventListener('touchmove', this.onTM.bind(this), { passive: false });
+    el.addEventListener('touchend', this.onTE.bind(this), { passive: false });
+    el.addEventListener('touchcancel', this.onTE.bind(this), { passive: false });
+  },
+
+  onTS(e) {
+    if (!S.audioUnlocked) return;
+    e.preventDefault();
+    if (e.touches.length >= 2) {
+      this.is2F = true;
+      clearTimeout(this.lpTimer); clearTimeout(this.tapTimer);
+      this.tapCount = 0; this.isLP = false;
+      this.twoF = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        t: Date.now()
+      };
+      return;
+    }
+    this.is2F = false;
+    this.sx = e.touches[0].clientX; this.sy = e.touches[0].clientY;
+    this.st = Date.now(); this.isLP = false;
+    this.lpTimer = setTimeout(() => {
+      this.isLP = true; clearTimeout(this.tapTimer); this.tapCount = 0;
+      Tones.play('click');
+      this.dispatch('LONG_PRESS');
+    }, CFG.longPressTime);
+  },
+
+  onTM(e) {
+    e.preventDefault();
+    if (e.touches.length === 1 && !this.is2F) {
+      const dx = e.touches[0].clientX - this.sx;
+      const dy = e.touches[0].clientY - this.sy;
+      if (Math.abs(dx) > 18 || Math.abs(dy) > 18) clearTimeout(this.lpTimer);
+    }
+  },
+
+  onTE(e) {
+    if (!S.audioUnlocked) return;
+    e.preventDefault();
+    clearTimeout(this.lpTimer);
+
+    // Two-finger swipe
+    if (this.is2F && this.twoF && e.touches.length === 0) {
+      const ex = e.changedTouches[0].clientX;
+      const ey = e.changedTouches[0].clientY;
+      const dx = ex - this.twoF.x;
+      const dy = ey - this.twoF.y;
+      const dt = Date.now() - this.twoF.t;
+      this.twoF = null; this.is2F = false;
+      if (dt < 800) {
+        if (Math.abs(dy) > CFG.twoFingerThreshold && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+          Tones.play('click'); this.dispatch('TWO_FINGER_DOWN'); return;
+        }
+        if (Math.abs(dx) > CFG.twoFingerThreshold && dx < 0 && Math.abs(dx) > Math.abs(dy)) {
+          Tones.play('click'); this.dispatch('TWO_FINGER_LEFT'); return;
+        }
+      }
+      return;
+    }
+    if (this.isLP || this.is2F) { this.is2F = false; return; }
+
+    const ex = e.changedTouches[0].clientX;
+    const ey = e.changedTouches[0].clientY;
+    const dx = ex - this.sx;
+    const dy = ey - this.sy;
+
+    if (Math.abs(dy) > CFG.swipeThreshold && Math.abs(dy) > Math.abs(dx)) {
+      if (dy < 0) { Tones.play('click'); this.dispatch('SWIPE_UP'); return; }
+    }
+
+    this.tapCount++;
+    if (this.tapCount === 1) {
+      this.tapTimer = setTimeout(() => {
+        Tones.play('click'); this.dispatch('TAP'); this.tapCount = 0;
+      }, CFG.doubleTapDelay);
+    } else if (this.tapCount >= 2) {
+      clearTimeout(this.tapTimer);
+      Tones.play('click'); this.dispatch('DOUBLE_TAP'); this.tapCount = 0;
+    }
+  },
+
+  dispatch(g) {
+    const names = { TAP:'Tap', DOUBLE_TAP:'Double Tap', LONG_PRESS:'Long Press', SWIPE_UP:'Swipe Up', TWO_FINGER_LEFT:'2F Left', TWO_FINGER_DOWN:'2F Down' };
+    UI.flashGesture(names[g] || g);
+    UI.setDev(undefined, undefined, names[g] || g);
+    Flow.onGesture(g);
+  }
+};
+
+// ===== FLOW CONTROLLER =====
+const Flow = {
+  say(text, step, cb) {
+    if (step) UI.setDev(undefined, step);
+    TTS.stop();
+    const display = text;
+    const speech = text.replace(/\[/g,'').replace(/\]/g,'').replace(/\{/g,'').replace(/\}/g,'');
+    UI.showText(display);
+    TTS.speak(speech, cb);
+  },
+
+  setJ(j, phase) {
+    S.journey = j; S.phase = phase;
+    UI.setDev(j);
+  },
+
+  // ===== GESTURE ROUTER =====
+  onGesture(g) {
+    if (S.listening) return;
+    if (S.confirming) { this.onConfirmGesture(g); return; }
+    if (S.journey === 3 && S.awaitGesture) { this.onTrainGesture(g); return; }
+
+    switch(S.journey) {
+      case 1: this.j1Welcome(g); break;
+      case 2: this.j2Onboard(g); break;
+      case 3: this.j3TrainNav(g); break;
+      case 4: this.j4HomeIntro(g); break;
+      case 5: this.j5AppSetup(g); break;
+      case 6: this.j6UberSetup(g); break;
+      case 7: this.j7WebSetup(g); break;
+      case 8: this.j8Uber(g); break;
+      case 9: this.j9BBC(g); break;
+    }
+  },
+
+  // ===== J1: WELCOME =====
+  startJ1() {
+    this.setJ(1, 'unlock'); S.step = '1.1';
+    UI.setDev('1.Welcome', '1.1');
+    UI.hideDots(); UI.hideHeader();
+  },
+
+  j1Welcome(g) {
+    if (g === 'TAP' && S.step === '1.1') {
+      S.step = '1.2';
+      contextHaptic('home');
+      Tones.play('chime');
+      UI.showHeader();
+      UI.setDots(0, 3);
+      setTimeout(() => {
+        this.say('Welcome to [Seequence]. I am here to help you use your phone independently.', '1.2', () => {
+          S.step = '1.3';
+          UI.setDots(1, 3);
+          this.say("Let's get started by getting to know you.\n\nTap anywhere to continue.", '1.3');
+        });
+      }, 500);
+    } else if (g === 'TAP' && (S.step === '1.3' || S.step === '1.4')) {
+      S.step = '1.4';
+      Haptic.fire('nav');
+      UI.setDots(2, 3);
+      this.startJ2();
+    }
+  },
+
+  // ===== J2: ONBOARDING =====
+  startJ2() {
+    this.setJ(2, 'name'); S.step = '2.1';
+    UI.setDev('2.Onboard', '2.1');
+    UI.setDots(0, 3);
+    this.say('What is your name?\n\nWhen you hear the tone, please say your name.', '2.1', () => {
+      S.step = '2.2';
+      Tones.play('tone');
+      S.pendingInput = 'name';
+      setTimeout(() => STT.listen(), 800);
+    });
+  },
+
+  j2Onboard(g) {
+    // Tap to start training transition
+    if (S.phase === 'transition' && g === 'TAP') {
+      Haptic.fire('nav');
+      this.startJ3();
+    }
+  },
+
+  // ===== SPEECH RESULTS =====
+  onSpeechResult(result) {
+    if (S.pendingInput === 'name') {
+      S.pendingValue = result; S.step = '2.3';
+      S.confirming = true; S.confirmCtx = 'name';
+      UI.showConfirm(result);
+      UI.setDots(1, 3);
+      this.say(`Nice to meet you, [${result}].\n\nI'll use your name from time to time, but only inside the app.\n\nIf I got that wrong, say {change my name}. Or tap anywhere on the screen to continue.`, '2.3');
+    } else if (S.pendingInput === 'app_name') {
+      S.pendingValue = result;
+      S.confirming = true; S.confirmCtx = 'app_name';
+      this.say(`I heard [${result}]. Tap to confirm, double tap to retry.`, S.step);
+    } else if (S.pendingInput === 'address') {
+      S.pendingValue = result;
+      S.confirming = true; S.confirmCtx = 'address';
+      this.say(`I heard [${result}]. Tap to confirm, double tap to retry.`, S.step);
+    } else if (S.pendingInput === 'website') {
+      S.pendingValue = result;
+      S.confirming = true; S.confirmCtx = 'website';
+      this.say(`I heard [${result}]. Tap to confirm, double tap to retry.`, S.step);
+    } else if (S.pendingInput === 'category_name') {
+      S.pendingValue = result;
+      S.confirming = true; S.confirmCtx = 'category_name';
+      this.say(`I heard [${result}]. Tap to confirm, double tap to retry.`, S.step);
+    }
+  },
+
+  onSpeechFallback() {
+    if (S.pendingInput === 'name') {
+      this.onSpeechResult('Thabo');
+    } else if (S.pendingInput === 'app_name') {
+      const catKey = S.addingTo.toLowerCase();
+      const apps = DEMO.apps[catKey] || ['App'];
+      this.onSpeechResult(apps[S.setupApps.length] || 'App');
+    } else if (S.pendingInput === 'address') {
+      if (S.confirmCtx === 'home_address' || S.step === '6.3') this.onSpeechResult(DEMO.uberHome);
+      else this.onSpeechResult(DEMO.uberWork);
+    } else if (S.pendingInput === 'website') {
+      this.onSpeechResult(DEMO.websites[S.setupApps.length] || 'Wikipedia');
+    } else if (S.pendingInput === 'category_name') {
+      this.onSpeechResult('Entertainment');
+    }
+  },
+
+  // ===== CONFIRM HANDLER =====
+  onConfirmGesture(g) {
+    if (g === 'TAP') {
+      // YES
+      S.confirming = false; UI.hideConfirm();
+      Haptic.fire('confirm');
+
+      if (S.confirmCtx === 'name') {
+        DEMO.userName = S.pendingValue;
+        S.step = '2.4';
+        UI.setDots(2, 3);
+        this.say(`Nice to meet you, [${DEMO.userName}].\n\nNow let me teach you how to use Seequence.\n\nTap anywhere to begin.`, '2.4', () => {
+          S.phase = 'transition';
+          this.setJ(2, 'transition');
+        });
+      } else if (S.confirmCtx === 'category_name') {
+        const n = S.pendingValue;
+        S.categories.push(n);
+        DEMO.customCategories.push(n);
+        DEMO.apps[n.toLowerCase()] = [];
+        S.confirming = true; S.confirmCtx = 'add_more_cat';
+        this.say(`[${n}] added. Add another category? Tap yes, double tap no.`, '5.5');
+      } else if (S.confirmCtx === 'add_more_cat') {
+        S.confirming = false;
+        S.pendingInput = 'category_name';
+        this.say('Long press and say the name of your new category.', '5.3');
+      } else if (S.confirmCtx === 'app_name') {
+        const app = S.pendingValue;
+        S.setupApps.push(app);
+        const cat = S.addingTo;
+        const catKey = cat.toLowerCase();
+        if (!DEMO.apps[catKey]) DEMO.apps[catKey] = [];
+        DEMO.apps[catKey].push(app);
+        Haptic.fire('confirm');
+        this.say(`[${app}] added to [${cat}].\n\nLong press to add another, or swipe left when done with [${cat}].`, S.step, () => {
+          S.phase = 'adding_apps';
+          S.pendingInput = 'app_name';
+        });
+      } else if (S.confirmCtx === 'address') {
+        this.onAddressConfirm();
+      } else if (S.confirmCtx === 'website') {
+        const site = S.pendingValue;
+        S.setupApps.push(site);
+        if (!DEMO.websites.includes(site)) DEMO.websites.push(site);
+        Haptic.fire('confirm');
+        this.say(`[${site}] added to Web Content.\n\nLong press to add another, or swipe left when done.`, '7.4', () => {
+          S.pendingInput = 'website';
+        });
+      } else if (S.confirmCtx === 'custom_categories') {
+        // Yes, want custom categories
+        S.confirming = false;
+        S.pendingInput = 'category_name';
+        this.say('Long press and say the name of your new category.', '5.3');
+      }
+    } else if (g === 'DOUBLE_TAP') {
+      // NO
+      S.confirming = false; UI.hideConfirm();
+      Haptic.fire('nav');
+
+      if (S.confirmCtx === 'name') {
+        S.step = '2.4b';
+        this.say("No problem. Let's try again.\n\nWhen you hear the tone, say your name.", '2.4b', () => {
+          Tones.play('tone'); S.pendingInput = 'name';
+          setTimeout(() => STT.listen(), 800);
+        });
+      } else if (S.confirmCtx === 'add_more_cat' || S.confirmCtx === 'custom_categories') {
+        S.confirming = false;
+        this.say("Let's add apps to your categories.", '5.6', () => this.startCatSetup(0));
+      } else if (S.confirmCtx === 'app_name') {
+        this.say("Let's try again. Long press and speak the app name.", S.step);
+        S.pendingInput = 'app_name';
+      } else if (S.confirmCtx === 'address') {
+        this.say("Let's try again. Long press and say your full address.", S.step);
+        S.pendingInput = 'address';
+      } else if (S.confirmCtx === 'website') {
+        this.say("Let's try again. Long press and speak the website name.", S.step);
+        S.pendingInput = 'website';
+      }
+    }
+  },
+
+  // ===== J3: GESTURE TRAINING =====
+  startJ3() {
+    this.setJ(3, 'intro'); S.step = '3.1'; S.gestureStep = 0;
+    UI.setDev('3.Gestures', '3.1');
+    UI.hideDots();
+    UI.setContext('Gesture Training');
+    this.say('[Seequence] uses six simple gestures.\n\nLet\'s learn them one by one.', '3.1', () => this.teachNext());
+  },
+
+  teachNext() {
+    S.gestureStep++;
+    const lessons = [
+      { intro: '[Single Tap] tells you where you are and what you can do.', prompt: 'Try it now. Tap once anywhere.', g: 'TAP', ok: 'Well done! Single tap = where am I?', s: '3.2' },
+      { intro: '[Double Tap] moves you to the next item.', prompt: 'Try it now. Tap twice quickly.', g: 'DOUBLE_TAP', ok: 'Well done! Double tap = next item.', s: '3.5' },
+      { intro: '[Swipe Up] moves you to the previous item.', prompt: 'Try it now. Swipe up.', g: 'SWIPE_UP', ok: 'Well done! Swipe up = previous item.', s: '3.8' },
+      { intro: '[Long Press] selects, confirms, or starts voice input.', prompt: 'Try it now. Hold your finger down for one second.', g: 'LONG_PRESS', ok: 'Well done! Long press = select or speak.', s: '3.11' },
+      { intro: '[Two-Finger Swipe Left] takes you back one level.', prompt: 'Try it now. Two fingers, swipe left.', g: 'TWO_FINGER_LEFT', ok: 'Well done! Two-finger left = go back.', s: '3.14' },
+      { intro: '[Two-Finger Swipe Down] takes you home from anywhere. You can never get lost.', prompt: 'Try it now. Two fingers, swipe down.', g: 'TWO_FINGER_DOWN', ok: 'Well done! Two-finger down = go home.', s: '3.17' },
+    ];
+    const idx = S.gestureStep - 1;
+    if (idx >= lessons.length) { this.finishJ3(); return; }
+    const l = lessons[idx];
+    UI.setDots(idx, 6 > 3 ? 3 : idx); // Just show progress dot
+    this.say(l.intro + '\n\n' + l.prompt, l.s, () => {
+      S.awaitGesture = l.g;
+      S._trainOk = l.ok;
+    });
+  },
+
+  onTrainGesture(g) {
+    if (g === S.awaitGesture) {
+      Haptic.fire('confirm');
+      Tones.play('success');
+      S.awaitGesture = null;
+      this.say(S._trainOk, S.step, () => this.teachNext());
+    }
+  },
+
+  finishJ3() {
+    const name = DEMO.userName || 'friend';
+    S.step = '3.20';
+    this.say(`Excellent, [${name}]! You know all six gestures.\n\nYou are ready. Let's set up your personal Seequence.\n\nTap to continue.`, '3.20', () => {
+      S.phase = 'transition'; this.setJ(3, 'transition');
+    });
+  },
+
+  j3TrainNav(g) {
+    if (S.phase === 'transition' && g === 'TAP') {
+      Haptic.fire('nav');
+      this.startJ4();
+    }
+  },
+
+  // ===== J4: HOME INTRO =====
+  startJ4() {
+    this.setJ(4, 'orient'); S.step = '4.1';
+    UI.setDev('4.Home', '4.1');
+    contextHaptic('home');
+    UI.setContext('Home Screen');
+    UI.setDots(0, 2);
+    this.say('You are now on the [Home Screen]. This is where you always start.', '4.1', () => {
+      S.step = '4.2';
+      this.say('Seequence has two main areas.\n\n[App Library] where your apps live.\n\nAnd [Web Content] where you read news and browse.', '4.2', () => {
+        S.step = '4.3';
+        UI.setDots(0, 2);
+        this.say('You are on [App Library]. Double tap for Web Content. Long press to enter.', '4.3', () => {
+          S.step = '4.4';
+          this.say("Let's set up your [App Library] first.\n\nLong press to enter.", '4.4');
+        });
+      });
+    });
+  },
+
+  j4HomeIntro(g) {
+    if (g === 'LONG_PRESS' && (S.step === '4.3' || S.step === '4.4')) {
+      S.step = '4.5';
+      contextHaptic('app');
+      UI.setContext('App Library');
+      this.say('You are now in [App Library].', '4.5', () => this.startJ5());
+    }
+  },
+
+  // ===== J5: APP LIBRARY SETUP =====
+  startJ5() {
+    this.setJ(5, 'cats_intro'); S.step = '5.1';
+    UI.setDev('5.AppSetup', '5.1');
+    S.categories = ['Communication', 'Mobility', 'Finance', 'Utilities'];
+    contextHaptic('app');
+    UI.setContext('App Library Setup');
+    UI.setDots(0, 3);
+    this.say('App Library has four categories.\n\n[Communication] for calls and messages.\n[Mobility] for rides and navigation.\n[Finance] for banking and payments.\n[Utilities] for everyday tools.', '5.1', () => {
+      S.step = '5.2';
+      UI.setDots(1, 3);
+      S.confirming = true; S.confirmCtx = 'custom_categories';
+      this.say('Would you like to add your own categories?\n\nTap for yes, double tap for no.', '5.2');
+    });
+  },
+
+  startCatSetup(idx) {
+    if (idx >= S.categories.length) { this.finishJ5(); return; }
+    S.catIdx = idx;
+    const cat = S.categories[idx];
+    S.addingTo = cat; S.setupApps = [];
+    S.phase = cat;
+    UI.setContext(cat);
+    UI.setDots(Math.min(idx, 2), 3);
+    this.say(`You are in [${cat}].\n\nLong press and say the name of a ${cat.toLowerCase()} app.`, '5.cat', () => {
+      S.pendingInput = 'app_name';
+    });
+  },
+
+  j5AppSetup(g) {
+    if (S.pendingInput === 'app_name' && g === 'LONG_PRESS') {
+      contextHaptic('app'); Tones.play('tone');
+      setTimeout(() => STT.listen(), 600);
+      return;
+    }
+    if (S.pendingInput === 'category_name' && g === 'LONG_PRESS') {
+      Haptic.fire('nav'); Tones.play('tone');
+      setTimeout(() => STT.listen(), 600);
+      return;
+    }
+    if (g === 'TWO_FINGER_LEFT' && (S.phase === 'adding_apps' || S.pendingInput === 'app_name')) {
+      const cat = S.addingTo;
+      const idx = S.catIdx;
+      Haptic.fire('confirm');
+      this.say(`[${cat}] is set up. Category ${idx+1} of ${S.categories.length}.`, S.step, () => {
+        this.startCatSetup(idx + 1);
+      });
+    }
+  },
+
+  finishJ5() {
+    UI.setContext('App Library');
+    UI.setDots(2, 3);
+    Haptic.fire('confirm');
+    this.say('Your [App Library] is ready.', '5.26', () => {
+      const hasUber = DEMO.apps.mobility && DEMO.apps.mobility.some(a => a.toLowerCase().includes('uber'));
+      if (hasUber) this.startJ6();
+      else this.startJ7();
+    });
+  },
+
+  // ===== J6: UBER SETUP =====
+  startJ6() {
+    this.setJ(6, 'intro'); S.step = '6.1';
+    UI.setDev('6.UberSetup', '6.1');
+    contextHaptic('app');
+    UI.setContext('Uber Setup');
+    UI.setDots(0, 2);
+    this.say("I noticed you added [Uber]. Let's set it up.\n\nI need your home and work addresses.", '6.1', () => {
+      S.step = '6.2'; S.pendingInput = 'address'; S.confirmCtx = 'home_address';
+      UI.setDots(0, 2);
+      this.say('What is your [home address]?\n\nLong press and say your full address.', '6.2');
+    });
+  },
+
+  j6UberSetup(g) {
+    if (g === 'LONG_PRESS' && S.pendingInput === 'address') {
+      contextHaptic('app'); Tones.play('tone');
+      setTimeout(() => STT.listen(), 600);
+    }
+  },
+
+  onAddressConfirm() {
+    const addr = S.pendingValue;
+    if (S.confirmCtx === 'home_address' || S.step === '6.3') {
+      DEMO.uberHome = addr; S.step = '6.4';
+      Haptic.fire('confirm');
+      this.say(`[${addr}] saved as your home.`, '6.4', () => {
+        S.step = '6.5'; S.pendingInput = 'address'; S.confirmCtx = 'work_address';
+        UI.setDots(1, 2);
+        this.say('What is your [work address]?\n\nLong press and say your full address.', '6.5');
+      });
+    } else {
+      DEMO.uberWork = addr; S.step = '6.7';
+      Haptic.fire('confirm');
+      this.say(`[${addr}] saved as your work.\n\n[Uber] is ready to use.`, '6.7', () => this.startJ7());
+    }
+  },
+
+  // ===== J7: WEB CONTENT SETUP =====
+  startJ7() {
+    this.setJ(7, 'intro'); S.step = '7.1';
+    UI.setDev('7.WebSetup', '7.1');
+    S.setupApps = [];
+    contextHaptic('web');
+    UI.setContext('Web Content Setup');
+    UI.setDots(0, 2);
+    this.say("Now let's set up [Web Content].\n\nThese are websites you can read and browse.", '7.1', () => {
+      S.step = '7.2'; S.pendingInput = 'website';
+      this.say('Long press and speak the name of your first website.', '7.2');
+    });
+  },
+
+  j7WebSetup(g) {
+    if (g === 'LONG_PRESS' && S.pendingInput === 'website') {
+      contextHaptic('web'); Tones.play('tone');
+      setTimeout(() => STT.listen(), 600);
+    }
+    if (g === 'TWO_FINGER_LEFT') {
+      Haptic.fire('confirm'); S.step = '7.6';
+      UI.setDots(1, 2);
+      this.say('Web Content is set up.', '7.6', () => {
+        S.step = '7.7';
+        const name = DEMO.userName || 'friend';
+        Tones.play('success');
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        this.say(`Congratulations, [${name}]!\n\nYour personal Seequence is ready.\n\nYou are on the [Home Screen].\nYou are on [App Library].\n\nEnjoy your independence.`, '7.7', () => {
+          S.homePos = 'app_library';
+          this.startJ8();
+        });
+      });
+    }
+  },
+
+  // ===== J8: UBER JOURNEY (live navigation) =====
+  startJ8() {
+    this.setJ(8, 'Home'); S.step = '8.1';
+    UI.setDev('8.Navigate');
+    S.homePos = 'app_library'; S.catIdx = 0;
+    contextHaptic('home');
+    UI.setContext('Home Screen');
+    UI.setDots(0, 2); // App Library | Web Content
+  },
+
+  j8Uber(g) {
+    // HOME
+    if (S.phase === 'Home') {
+      if (g === 'TAP') {
+        contextHaptic('home');
+        const pos = S.homePos === 'app_library' ? 'App Library' : 'Web Content';
+        const other = S.homePos === 'app_library' ? 'Web Content' : 'App Library';
+        UI.setDots(S.homePos === 'app_library' ? 0 : 1, 2);
+        this.say(`You are on the [Home Screen].\nYou are on [${pos}].\n\nDouble tap for ${other}.\nLong press to enter.`, '8.1');
+      } else if (g === 'DOUBLE_TAP') {
+        S.homePos = S.homePos === 'app_library' ? 'web_content' : 'app_library';
+        Haptic.fire('nav');
+        const pos = S.homePos === 'app_library' ? 'App Library' : 'Web Content';
+        UI.setDots(S.homePos === 'app_library' ? 0 : 1, 2);
+        this.say(`[${pos}].\nLong press to enter.`, '8.1');
+      } else if (g === 'LONG_PRESS') {
+        if (S.homePos === 'app_library') {
+          S.phase = 'Cats'; S.catIdx = 0; S.step = '8.2';
+          contextHaptic('app');
+          UI.setContext('App Library');
+          const cat = S.categories[0];
+          this.say(`You are in [App Library].\n\n[${cat}]. Category 1 of ${S.categories.length}.`, '8.2');
+        } else {
+          this.startJ9();
+        }
+      }
+      return;
+    }
+
+    // CATEGORIES
+    if (S.phase === 'Cats') {
+      if (g === 'TAP') {
+        contextHaptic('app');
+        const cat = S.categories[S.catIdx];
+        this.say(`[${cat}]. Category ${S.catIdx+1} of ${S.categories.length}.`, S.step);
+      } else if (g === 'DOUBLE_TAP') {
+        S.catIdx = (S.catIdx + 1) % S.categories.length;
+        Haptic.fire('nav');
+        const cat = S.categories[S.catIdx];
+        UI.setContext('App Library > ' + cat);
+        this.say(`[${cat}]. Category ${S.catIdx+1} of ${S.categories.length}.`, S.step);
+      } else if (g === 'SWIPE_UP') {
+        S.catIdx = S.catIdx === 0 ? S.categories.length - 1 : S.catIdx - 1;
+        Haptic.fire('nav');
+        const cat = S.categories[S.catIdx];
+        UI.setContext('App Library > ' + cat);
+        this.say(`[${cat}]. Category ${S.catIdx+1} of ${S.categories.length}.`, S.step);
+      } else if (g === 'LONG_PRESS') {
+        const cat = S.categories[S.catIdx];
+        const catKey = cat.toLowerCase();
+        S.appsInCat = DEMO.apps[catKey] || [];
+        S.appIdx = 0; S.phase = 'InCat';
+        contextHaptic('app');
+        UI.setContext(cat);
+        if (S.appsInCat.length > 0) {
+          const app = S.appsInCat[0];
+          this.say(`[${cat}].\n\n[${app}]. App 1 of ${S.appsInCat.length}.`, '8.6');
+        } else {
+          this.say(`[${cat}] is empty. Swipe left to go back.`, S.step);
+        }
+      } else if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'Home'; S.step = '8.1';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('You are on the [Home Screen]. You are on [App Library].', '8.20');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.step = '8.1'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('You are on the [Home Screen]. You are on [App Library].', '8.21');
+      }
+      return;
+    }
+
+    // INSIDE CATEGORY
+    if (S.phase === 'InCat') {
+      const cat = S.categories[S.catIdx];
+      const apps = S.appsInCat;
+      if (g === 'TAP') {
+        contextHaptic('app');
+        this.say(`[${apps[S.appIdx]}]. App ${S.appIdx+1} of ${apps.length}.`, '8.7');
+      } else if (g === 'DOUBLE_TAP') {
+        S.appIdx = (S.appIdx + 1) % apps.length;
+        Haptic.fire('nav');
+        UI.setContext(cat + ' > ' + apps[S.appIdx]);
+        this.say(`[${apps[S.appIdx]}]. App ${S.appIdx+1} of ${apps.length}.`, S.step);
+      } else if (g === 'SWIPE_UP') {
+        S.appIdx = S.appIdx === 0 ? apps.length - 1 : S.appIdx - 1;
+        Haptic.fire('nav');
+        this.say(`[${apps[S.appIdx]}]. App ${S.appIdx+1} of ${apps.length}.`, S.step);
+      } else if (g === 'LONG_PRESS') {
+        const app = apps[S.appIdx];
+        if (app.toLowerCase() === 'uber') {
+          this.openUber();
+        } else {
+          contextHaptic('app');
+          S.phase = 'InApp';
+          UI.setContext(app);
+          this.say(`[${app}] opened.\n\nIn the full version this would launch ${app}.\n\nSwipe left to go back.`, S.step);
+        }
+      } else if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'Cats';
+        contextHaptic('app');
+        UI.setContext('App Library');
+        this.say(`[App Library]. [${cat}]. Category ${S.catIdx+1} of ${S.categories.length}.`, '8.19');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.step = '8.1'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('You are on the [Home Screen]. You are on [App Library].', '8.21');
+      }
+      return;
+    }
+
+    // INSIDE APP (generic)
+    if (S.phase === 'InApp') {
+      if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'InCat';
+        contextHaptic('app');
+        const cat = S.categories[S.catIdx];
+        UI.setContext(cat);
+        this.say(`[${cat}]. [${S.appsInCat[S.appIdx]}]. App ${S.appIdx+1} of ${S.appsInCat.length}.`, '8.18');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.step = '8.1'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('You are on the [Home Screen]. You are on [App Library].', '8.21');
+      }
+      return;
+    }
+
+    // UBER DESTINATION
+    if (S.phase === 'Uber') {
+      this.handleUberNav(g);
+      return;
+    }
+
+    // UBER RIDE
+    if (S.phase === 'UberRide') {
+      if (g === 'TWO_FINGER_LEFT' || g === 'TWO_FINGER_DOWN') {
+        S.phase = 'InCat';
+        contextHaptic('app');
+        UI.setContext('Mobility');
+        this.say(`[Mobility]. [Uber]. App 1 of ${S.appsInCat.length}.`, '8.18');
+      }
+      return;
+    }
+  },
+
+  openUber() {
+    S.phase = 'Uber'; S.uberDestIdx = 0; S.step = '8.8';
+    contextHaptic('app');
+    UI.setContext('Uber');
+    this.say('[Uber] is open.\n\nWhere would you like to go?\n\nYou are on [Home].\nDouble tap for Work.\nLong press to select.', '8.8');
+  },
+
+  handleUberNav(g) {
+    if (g === 'TAP') {
+      contextHaptic('app');
+      this.say(`[${S.uberDests[S.uberDestIdx]}].`, S.step);
+    } else if (g === 'DOUBLE_TAP') {
+      S.uberDestIdx = (S.uberDestIdx + 1) % S.uberDests.length;
+      Haptic.fire('nav');
+      this.say(`[${S.uberDests[S.uberDestIdx]}].`, S.step);
+    } else if (g === 'SWIPE_UP') {
+      S.uberDestIdx = S.uberDestIdx === 0 ? S.uberDests.length - 1 : S.uberDestIdx - 1;
+      Haptic.fire('nav');
+      this.say(`[${S.uberDests[S.uberDestIdx]}].`, S.step);
+    } else if (g === 'LONG_PRESS') {
+      const dest = S.uberDests[S.uberDestIdx];
+      Haptic.fire('confirm');
+      S.step = '8.13';
+      this.say(`[${dest}] selected.\n\nFinding your driver. Please wait.`, '8.13', () => this.simulateRide(dest));
+    } else if (g === 'TWO_FINGER_LEFT') {
+      S.phase = 'InCat';
+      contextHaptic('app');
+      UI.setContext('Mobility');
+      this.say(`[Mobility]. [Uber]. App 1 of ${S.appsInCat.length}.`, '8.18');
+    } else if (g === 'TWO_FINGER_DOWN') {
+      S.phase = 'Home'; S.step = '8.1'; S.homePos = 'app_library';
+      contextHaptic('home');
+      UI.setContext('Home Screen');
+      UI.setDots(0, 2);
+      this.say('You are on the [Home Screen]. You are on [App Library].', '8.21');
+    }
+  },
+
+  simulateRide(dest) {
+    S.phase = 'UberRide'; S.step = '8.14';
+    UI.setContext('Uber Ride');
+    const steps = [
+      { text: 'Driver found. [Sipho] is on the way in a white Toyota Corolla.\n\nArriving in 4 minutes.', s: '8.14', h: 'app' },
+      { text: 'Your driver has arrived.\n\nPlease make your way to the car.', s: '8.15', h: 'confirm' },
+      { text: `Trip started. On your way to [${dest}].\n\nEstimated arrival: 12 minutes.`, s: '8.16', h: 'app' },
+      { text: `You have arrived at [${dest}].\n\nHave a great day.`, s: '8.17', h: 'confirm' },
+    ];
+    let i = 0;
+    const run = () => {
+      if (i >= steps.length) {
+        S.phase = 'InCat'; S.step = '8.18';
+        UI.setContext('Mobility');
+        setTimeout(() => {
+          contextHaptic('app');
+          this.say('Ride complete.\n\nSwipe left to go back, or two-finger down for home.', '8.18');
+        }, 1200);
+        return;
+      }
+      const st = steps[i];
+      setTimeout(() => {
+        Haptic.fire(st.h);
+        this.say(st.text, st.s, () => { i++; run(); });
+      }, i === 0 ? 400 : 2500);
+    };
+    run();
+  },
+
+  // ===== J9: BBC JOURNEY =====
+  startJ9() {
+    this.setJ(9, 'Home'); S.step = '9.1';
+    UI.setDev('9.Web');
+    S.homePos = 'web_content'; S.webIdx = 0; S.artIdx = 0; S.paraIdx = 0;
+    contextHaptic('web');
+    UI.setContext('Web Content');
+    UI.setDots(1, 2);
+    // Enter directly into web content list
+    S.phase = 'WebList';
+    S.webIdx = 0;
+    const site = DEMO.websites[0];
+    this.say(`You are in [Web Content].\n\n[${site}]. Website 1 of ${DEMO.websites.length}.\n\nDouble tap for next, long press to open.`, '9.5');
+  },
+
+  j9BBC(g) {
+    // HOME
+    if (S.phase === 'Home') {
+      if (g === 'TAP') {
+        contextHaptic('home');
+        const pos = S.homePos === 'app_library' ? 'App Library' : 'Web Content';
+        UI.setDots(S.homePos === 'app_library' ? 0 : 1, 2);
+        this.say(`[Home Screen]. You are on [${pos}].`, '9.1');
+      } else if (g === 'DOUBLE_TAP') {
+        S.homePos = S.homePos === 'app_library' ? 'web_content' : 'app_library';
+        Haptic.fire('nav');
+        const pos = S.homePos === 'app_library' ? 'App Library' : 'Web Content';
+        UI.setDots(S.homePos === 'app_library' ? 0 : 1, 2);
+        this.say(`[${pos}]. Long press to enter.`, '9.2');
+      } else if (g === 'LONG_PRESS') {
+        if (S.homePos === 'web_content') {
+          S.phase = 'WebList'; S.webIdx = 0;
+          contextHaptic('web');
+          UI.setContext('Web Content');
+          const site = DEMO.websites[0];
+          this.say(`[Web Content].\n\n[${site}]. Website 1 of ${DEMO.websites.length}.`, '9.5');
+        } else {
+          // Switch to J8 for app navigation
+          S.journey = 8; S.phase = 'Cats'; S.catIdx = 0;
+          contextHaptic('app');
+          UI.setContext('App Library');
+          const cat = S.categories[0];
+          this.say(`[App Library]. [${cat}]. Category 1 of ${S.categories.length}.`, '8.2');
+        }
+      }
+      return;
+    }
+
+    // WEBSITE LIST
+    if (S.phase === 'WebList') {
+      if (g === 'TAP') {
+        contextHaptic('web');
+        const site = DEMO.websites[S.webIdx];
+        this.say(`[${site}]. Website ${S.webIdx+1} of ${DEMO.websites.length}.`, '9.6');
+      } else if (g === 'DOUBLE_TAP') {
+        S.webIdx = (S.webIdx + 1) % DEMO.websites.length;
+        Haptic.fire('nav');
+        const site = DEMO.websites[S.webIdx];
+        UI.setContext('Web Content > ' + site);
+        this.say(`[${site}]. Website ${S.webIdx+1} of ${DEMO.websites.length}.`, '9.7');
+      } else if (g === 'SWIPE_UP') {
+        S.webIdx = S.webIdx === 0 ? DEMO.websites.length - 1 : S.webIdx - 1;
+        Haptic.fire('nav');
+        const site = DEMO.websites[S.webIdx];
+        this.say(`[${site}]. Website ${S.webIdx+1} of ${DEMO.websites.length}.`, '9.8');
+      } else if (g === 'LONG_PRESS') {
+        const site = DEMO.websites[S.webIdx];
+        if (site.toLowerCase() === 'bbc') {
+          S.phase = 'Articles'; S.artIdx = 0;
+          contextHaptic('web');
+          UI.setContext('BBC');
+          const a = DEMO.bbcArticles[0];
+          this.say(`[BBC] is open.\n\n[${a.headline}].\nArticle 1 of ${DEMO.bbcArticles.length}.\n\nDouble tap for next, long press to read.`, '9.9');
+        } else {
+          S.phase = 'SiteOpen';
+          contextHaptic('web');
+          UI.setContext(site);
+          this.say(`[${site}] is open.\n\nIn the full version, headlines from ${site} would load here.\n\nSwipe left to go back.`, S.step);
+        }
+      } else if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'Home'; S.homePos = 'web_content';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(1, 2);
+        this.say('[Home Screen]. You are on [Web Content].', '9.21');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('[Home Screen]. You are on [App Library].', '9.22');
+      }
+      return;
+    }
+
+    // SITE OPEN (non-BBC)
+    if (S.phase === 'SiteOpen') {
+      if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'WebList';
+        contextHaptic('web');
+        UI.setContext('Web Content');
+        const site = DEMO.websites[S.webIdx];
+        this.say(`[Web Content]. [${site}]. Website ${S.webIdx+1} of ${DEMO.websites.length}.`, '9.20');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('[Home Screen]. You are on [App Library].', '9.22');
+      }
+      return;
+    }
+
+    // ARTICLE LIST (BBC)
+    if (S.phase === 'Articles') {
+      const arts = DEMO.bbcArticles;
+      if (g === 'TAP') {
+        contextHaptic('web');
+        this.say(`[${arts[S.artIdx].headline}].\nArticle ${S.artIdx+1} of ${arts.length}.`, '9.10');
+      } else if (g === 'DOUBLE_TAP') {
+        S.artIdx = (S.artIdx + 1) % arts.length;
+        Haptic.fire('nav');
+        UI.setContext('BBC > ' + arts[S.artIdx].headline.substring(0, 25) + '...');
+        this.say(`[${arts[S.artIdx].headline}].\nArticle ${S.artIdx+1} of ${arts.length}.`, '9.11');
+      } else if (g === 'SWIPE_UP') {
+        S.artIdx = S.artIdx === 0 ? arts.length - 1 : S.artIdx - 1;
+        Haptic.fire('nav');
+        this.say(`[${arts[S.artIdx].headline}].\nArticle ${S.artIdx+1} of ${arts.length}.`, '9.12');
+      } else if (g === 'LONG_PRESS') {
+        S.phase = 'Reading'; S.paraIdx = 0;
+        contextHaptic('web');
+        UI.setContext('Reading');
+        this.say(arts[S.artIdx].paragraphs[0], '9.13');
+      } else if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'WebList';
+        contextHaptic('web');
+        UI.setContext('Web Content');
+        this.say(`[Web Content]. [BBC]. Website ${S.webIdx+1} of ${DEMO.websites.length}.`, '9.20');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('[Home Screen]. You are on [App Library].', '9.22');
+      }
+      return;
+    }
+
+    // READING ARTICLE
+    if (S.phase === 'Reading') {
+      const paras = DEMO.bbcArticles[S.artIdx].paragraphs;
+      if (g === 'TAP') {
+        contextHaptic('web');
+        this.say(paras[S.paraIdx], '9.14');
+      } else if (g === 'DOUBLE_TAP') {
+        if (S.paraIdx < paras.length - 1) {
+          S.paraIdx++;
+          Haptic.fire('nav');
+          UI.setContext('Reading - Para ' + (S.paraIdx+1));
+          this.say(paras[S.paraIdx], '9.15');
+        } else {
+          Haptic.fire('confirm');
+          this.say('End of article.\n\nDouble tap for next article, or swipe left to go back.', '9.18');
+        }
+      } else if (g === 'SWIPE_UP') {
+        if (S.paraIdx > 0) {
+          S.paraIdx--;
+          Haptic.fire('nav');
+          UI.setContext('Reading - Para ' + (S.paraIdx+1));
+          this.say(paras[S.paraIdx], '9.17');
+        }
+      } else if (g === 'TWO_FINGER_LEFT') {
+        S.phase = 'Articles';
+        contextHaptic('web');
+        UI.setContext('BBC');
+        const a = DEMO.bbcArticles[S.artIdx];
+        this.say(`[BBC]. [${a.headline}].\nArticle ${S.artIdx+1} of ${DEMO.bbcArticles.length}.`, '9.19');
+      } else if (g === 'TWO_FINGER_DOWN') {
+        S.phase = 'Home'; S.homePos = 'app_library';
+        contextHaptic('home');
+        UI.setContext('Home Screen');
+        UI.setDots(0, 2);
+        this.say('[Home Screen]. You are on [App Library].', '9.22');
+      }
+      return;
+    }
+  },
+};
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  UI.init();
+  TTS.init();
+  STT.init();
+
+  const overlay = document.getElementById('start-overlay');
+
+  const startApp = () => {
+    overlay.classList.add('hidden');
+    S.audioUnlocked = true;
+    Tones.init();
+    TTS.warmup();
+    Gest.init();
+    setTimeout(() => Flow.startJ1(), 300);
+  };
+
+  overlay.addEventListener('click', startApp);
+  overlay.addEventListener('touchend', (e) => { e.preventDefault(); startApp(); });
+});
+</script>
+</body>
+</html>
