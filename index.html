@@ -375,6 +375,28 @@ html, body {
   pointer-events: none;
 }
 #context-bar.visible { opacity: 0.5; }
+
+/* ===== DESKTOP KEYBOARD HELP ===== */
+#kb-help {
+  position: fixed;
+  top: 10px; right: 10px;
+  background: rgba(30,30,30,0.95);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #888;
+  z-index: 150;
+  pointer-events: none;
+  max-width: 200px;
+  display: none;
+}
+#kb-help .k { color: var(--cyan); font-weight: 700; font-family: monospace; }
+#kb-help .title { color: var(--white); font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+@media (pointer: fine) {
+  #kb-help { display: block; }
+}
 </style>
 </head>
 <body>
@@ -383,28 +405,28 @@ html, body {
 <div id="start-overlay">
   <div id="start-logo">
     <div class="logo-icon">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="18" r="12" fill="white"/>
-        <path d="M50 35 C30 35 20 55 30 70 L45 95 C47 99 53 99 55 95 L70 70 C80 55 70 35 50 35Z" fill="white"/>
-        <path d="M28 48 L10 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
-        <path d="M72 48 L90 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
+      <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="52" cy="12" r="10" fill="white"/>
+        <path d="M38 28 C28 28 22 38 26 48 L36 72 C38 78 32 82 28 80 L18 74" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M62 28 C72 28 78 38 74 48 L58 90 C55 98 48 98 46 90 L36 62" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M26 48 L42 56" stroke="white" stroke-width="7" stroke-linecap="round"/>
       </svg>
     </div>
     <div class="logo-name">Seequence</div>
   </div>
   <div id="start-circle"><div class="inner"></div></div>
-  <div id="start-text">Tap anywhere to begin</div>
+  <div id="start-text">Tap anywhere or press any key to begin</div>
 </div>
 
 <!-- Main screen -->
 <div id="screen">
   <div id="header">
     <div class="logo-icon">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="18" r="12" fill="white"/>
-        <path d="M50 35 C30 35 20 55 30 70 L45 95 C47 99 53 99 55 95 L70 70 C80 55 70 35 50 35Z" fill="white"/>
-        <path d="M28 48 L10 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
-        <path d="M72 48 L90 40" stroke="white" stroke-width="7" stroke-linecap="round"/>
+      <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="52" cy="12" r="10" fill="white"/>
+        <path d="M38 28 C28 28 22 38 26 48 L36 72 C38 78 32 82 28 80 L18 74" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M62 28 C72 28 78 38 74 48 L58 90 C55 98 48 98 46 90 L36 62" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M26 48 L42 56" stroke="white" stroke-width="7" stroke-linecap="round"/>
       </svg>
     </div>
     <div id="logo-label">Seequence</div>
@@ -454,6 +476,17 @@ html, body {
 <!-- Speaker -->
 <div id="speaker">
   <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+</div>
+
+<!-- Keyboard help (desktop only) -->
+<div id="kb-help">
+  <div class="title">Keyboard Controls</div>
+  <span class="k">Space</span> / <span class="k">Enter</span> = Tap<br>
+  <span class="k">D</span> = Double Tap<br>
+  <span class="k">U</span> / <span class="k">Arrow Up</span> = Swipe Up<br>
+  <span class="k">L</span> = Long Press<br>
+  <span class="k">B</span> / <span class="k">Arrow Left</span> = Back (2F Left)<br>
+  <span class="k">H</span> = Home (2F Down)
 </div>
 
 <!-- Dev strip -->
@@ -831,10 +864,53 @@ const Gest = {
 
   init() {
     const el = document.getElementById('screen');
+    // Touch events (mobile)
     el.addEventListener('touchstart', this.onTS.bind(this), { passive: false });
     el.addEventListener('touchmove', this.onTM.bind(this), { passive: false });
     el.addEventListener('touchend', this.onTE.bind(this), { passive: false });
     el.addEventListener('touchcancel', this.onTE.bind(this), { passive: false });
+
+    // Mouse events (desktop) - click = tap, dblclick = double tap
+    let mouseLP = null;
+    el.addEventListener('mousedown', (e) => {
+      if (!S.audioUnlocked) return;
+      e.preventDefault();
+      mouseLP = setTimeout(() => {
+        mouseLP = null;
+        Tones.play('click');
+        this.dispatch('LONG_PRESS');
+      }, CFG.longPressTime);
+    });
+    el.addEventListener('mouseup', (e) => {
+      if (!S.audioUnlocked) return;
+      e.preventDefault();
+      if (mouseLP) { clearTimeout(mouseLP); mouseLP = null; }
+    });
+    el.addEventListener('click', (e) => {
+      if (!S.audioUnlocked) return;
+      e.preventDefault();
+      this.tapCount++;
+      if (this.tapCount === 1) {
+        this.tapTimer = setTimeout(() => {
+          Tones.play('click'); this.dispatch('TAP'); this.tapCount = 0;
+        }, CFG.doubleTapDelay);
+      } else if (this.tapCount >= 2) {
+        clearTimeout(this.tapTimer);
+        Tones.play('click'); this.dispatch('DOUBLE_TAP'); this.tapCount = 0;
+      }
+    });
+
+    // Keyboard events (desktop)
+    document.addEventListener('keydown', (e) => {
+      if (!S.audioUnlocked) return;
+      const k = e.key.toLowerCase();
+      if (k === ' ' || k === 'enter') { e.preventDefault(); Tones.play('click'); this.dispatch('TAP'); }
+      else if (k === 'd') { e.preventDefault(); Tones.play('click'); this.dispatch('DOUBLE_TAP'); }
+      else if (k === 'u' || k === 'arrowup') { e.preventDefault(); Tones.play('click'); this.dispatch('SWIPE_UP'); }
+      else if (k === 'l') { e.preventDefault(); Tones.play('click'); this.dispatch('LONG_PRESS'); }
+      else if (k === 'b' || k === 'arrowleft') { e.preventDefault(); Tones.play('click'); this.dispatch('TWO_FINGER_LEFT'); }
+      else if (k === 'h') { e.preventDefault(); Tones.play('click'); this.dispatch('TWO_FINGER_DOWN'); }
+    });
   },
 
   onTS(e) {
@@ -1788,6 +1864,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   overlay.addEventListener('click', startApp);
   overlay.addEventListener('touchend', (e) => { e.preventDefault(); startApp(); });
+  document.addEventListener('keydown', function startKey(e) {
+    if (!S.audioUnlocked) { startApp(); document.removeEventListener('keydown', startKey); }
+  });
 });
 </script>
 </body>
