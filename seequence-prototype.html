@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>Seequence</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --black: #000000;
+  --amber: #FF8C00;
+  --cyan: #00BFFF;
+  --white: #FFFFFF;
+  --grey: #333333;
+  --dim: #666666;
+  --font-display: 'Helvetica Neue', 'Arial', sans-serif;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-display);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+/* ========== MAIN SCREEN ========== */
+#app {
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Logo area */
+#logo-area {
+  position: absolute;
+  top: 48px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#logo-area.visible { opacity: 1; }
+
+#logo-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: pulse-rest 3s ease-in-out infinite;
+}
+#logo-circle.action {
+  background: var(--cyan);
+  animation: pulse-action 1s ease-in-out infinite;
+}
+@keyframes pulse-rest {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+@keyframes pulse-action {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+#logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--white);
+}
+
+/* Main content area */
+#content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 100px 32px 140px;
+  text-align: center;
+}
+
+#main-text {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--white);
+  max-width: 340px;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#main-text.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+#main-text .highlight {
+  color: var(--amber);
+  font-weight: 700;
+}
+#main-text .cyan {
+  color: var(--cyan);
+}
+
+/* Speaker icon */
+#speaker-icon {
+  position: absolute;
+  bottom: 140px;
+  right: 24px;
+  width: 28px; height: 28px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#speaker-icon.speaking { opacity: 0.6; }
+#speaker-icon svg { width: 100%; height: 100%; fill: var(--dim); }
+
+/* ========== DEV STRIP ========== */
+#dev-strip {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(20, 20, 20, 0.95);
+  border-top: 1px solid var(--grey);
+  padding: 8px 16px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  z-index: 100;
+}
+.dev-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--grey);
+  color: #aaa;
+  white-space: nowrap;
+}
+.dev-tag .label { color: #777; }
+.dev-tag .value { color: var(--white); font-weight: 600; }
+.dev-tag.haptic { background: #1a1a2e; }
+.dev-tag.haptic .value { color: var(--amber); }
+.dev-tag.gesture { background: #1a2e1a; }
+.dev-tag.gesture .value { color: #66ff66; }
+.dev-tag.journey { background: #2e1a1a; }
+.dev-tag.journey .value { color: var(--cyan); }
+
+/* ========== GESTURE FEEDBACK ========== */
+#gesture-flash {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cyan);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 50;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+#gesture-flash.show {
+  opacity: 0.4;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ========== START OVERLAY ========== */
+#start-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--black);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  cursor: pointer;
+}
+#start-overlay.hidden { display: none; }
+
+#start-circle {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: pulse-rest 3s ease-in-out infinite;
+  margin-bottom: 40px;
+}
+#start-text {
+  font-size: 20px;
+  color: var(--white);
+  opacity: 0.7;
+}
+
+/* ========== LISTENING INDICATOR ========== */
+#listening-indicator {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 60;
+}
+#listening-indicator.active { display: flex; }
+
+#listening-ring {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--cyan);
+  animation: listen-pulse 1.2s ease-in-out infinite;
+}
+@keyframes listen-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+#listening-text {
+  font-size: 16px;
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+/* ========== CONFIRM UI ========== */
+#confirm-ui {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  z-index: 60;
+}
+#confirm-ui.active { display: flex; }
+
+#confirm-name {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--white);
+}
+#confirm-yes, #confirm-no {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+#confirm-yes .circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+#confirm-yes .label, #confirm-no .label {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--amber);
+}
+#confirm-no .pill {
+  width: 80px; height: 40px;
+  border-radius: 20px;
+  background: var(--amber);
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+#confirm-no .pill::before {
+  content: '◀';
+  color: var(--black);
+  font-size: 18px;
+}
+</style>
+</head>
+<body>
+
+<!-- Start overlay - needed to unlock audio on iOS -->
+<div id="start-overlay">
+  <div id="start-circle"></div>
+  <div id="start-text">Tap anywhere to begin</div>
+</div>
+
+<!-- Main app -->
+<div id="app">
+  <div id="logo-area">
+    <div id="logo-circle"></div>
+    <div id="logo-text">Seequence</div>
+  </div>
+
+  <div id="content-area">
+    <div id="main-text"></div>
+  </div>
+
+  <div id="listening-indicator">
+    <div id="listening-ring"></div>
+    <div id="listening-text">Listening...</div>
+  </div>
+
+  <div id="confirm-ui">
+    <div id="confirm-name"></div>
+    <div id="confirm-yes">
+      <div class="circle"></div>
+      <div class="label">Yes</div>
+    </div>
+    <div id="confirm-no">
+      <div class="pill"></div>
+      <div class="label">No</div>
+    </div>
+  </div>
+
+  <div id="speaker-icon">
+    <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+  </div>
+
+  <div id="gesture-flash"></div>
+
+  <div id="dev-strip">
+    <div class="dev-tag journey"><span class="label">Journey:</span><span class="value" id="dev-journey">—</span></div>
+    <div class="dev-tag"><span class="label">Step:</span><span class="value" id="dev-step">—</span></div>
+    <div class="dev-tag gesture"><span class="label">Gesture:</span><span class="value" id="dev-gesture">—</span></div>
+    <div class="dev-tag haptic"><span class="label">Haptic:</span><span class="value" id="dev-haptic">—</span></div>
+    <div class="dev-tag"><span class="label">State:</span><span class="value" id="dev-state">—</span></div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// SEEQUENCE PROTOTYPE — COMPLETE 9-JOURNEY INTERACTIVE PROTOTYPE
+// ================================================================
+
+// ============ CONFIGURATION ============
+const CONFIG = {
+  speechRate: 0.88,
+  speechPitch: 1.0,
+  speechVoiceKeywords: ['samantha', 'karen', 'moira', 'tessa', 'google uk', 'english'],
+  doubleTapDelay: 320,
+  longPressTime: 600,
+  swipeThreshold: 60,
+  twoFingerSwipeThreshold: 50,
+};
+
+// ============ DEMO DATA ============
+const DEMO = {
+  userName: null,
+  apps: {
+    communication: ['WhatsApp', 'Phone', 'Gmail'],
+    mobility: ['Uber'],
+    finance: ['FNB', 'Capitec'],
+    utilities: ['Settings', 'Calculator'],
+  },
+  customCategories: [],
+  uberHome: '12 Main Road, Rosebank',
+  uberWork: '44 Sandton Drive, Sandton',
+  websites: ['BBC', 'News24', 'Daily Maverick'],
+  bbcArticles: [
+    {
+      headline: 'South Africa launches new renewable energy programme',
+      paragraphs: [
+        'South Africa has announced a landmark renewable energy programme that aims to add 10 gigawatts of clean power capacity over the next five years.',
+        'The initiative comes as the country continues to grapple with rolling blackouts that have plagued businesses and households for years.',
+        'Energy Minister announced the programme at a press conference in Pretoria, saying it would create over fifty thousand jobs in the construction and maintenance of solar and wind facilities.',
+        'International investors have welcomed the move, with several major development banks signalling their willingness to provide financing for the ambitious programme.',
+        'Environmental groups have praised the initiative but urged the government to also address the phase-out of coal-fired power stations, which currently provide the majority of the country\'s electricity.'
+      ]
+    },
+    {
+      headline: 'Springboks announce squad for upcoming test series',
+      paragraphs: [
+        'The Springboks have named a thirty-two man squad for the upcoming test series against the British and Irish Lions.',
+        'Head coach confirmed several exciting new selections alongside experienced campaigners who have been the backbone of the team\'s recent success.',
+        'The squad will assemble in Cape Town next week for a training camp before the first test at Loftus Versfeld in Pretoria.'
+      ]
+    },
+    {
+      headline: 'Cape Town named among world\'s top destinations for twenty twenty six',
+      paragraphs: [
+        'Cape Town has once again been recognised as one of the world\'s top travel destinations, earning a spot in a prestigious international ranking for twenty twenty six.',
+        'The Mother City was praised for its combination of natural beauty, world-class dining, cultural attractions, and improved safety infrastructure.',
+        'Tourism officials say the recognition is expected to boost visitor numbers significantly in the coming year.'
+      ]
+    }
+  ]
+};
+
+// ============ STATE MACHINE ============
+const SM = {
+  journey: null,
+  phase: null,
+  step: null,
+  // Navigation state
+  homePosition: 'app_library', // or 'web_content'
+  currentCategory: 0,
+  categories: ['Communication', 'Mobility', 'Finance', 'Utilities'],
+  currentAppInCategory: 0,
+  appsInCurrentCategory: [],
+  currentWebsite: 0,
+  currentArticle: 0,
+  currentParagraph: 0,
+  // Setup state
+  setupCategory: null,
+  setupAppsAdded: [],
+  addingAppToCategory: null,
+  pendingInput: null, // what the speech recognition result is for
+  pendingValue: null,
+  // Uber journey state
+  uberDestination: 'Home',
+  uberDestIndex: 0,
+  uberDests: ['Home', 'Work'],
+  // Flags
+  audioUnlocked: false,
+  speaking: false,
+  awaitingGesture: null, // which gesture we're waiting for in training
+  gestureTrainingStep: 0,
+  listeningForSpeech: false,
+  awaitingConfirm: false,
+  confirmContext: null,
+};
+
+// ============ SPEECH ENGINE ============
+const Speech = {
+  synth: window.speechSynthesis,
+  preferredVoice: null,
+  queue: [],
+  isSpeaking: false,
+  warmupDone: false,
+
+  init() {
+    // Find a good voice
+    const findVoice = () => {
+      const voices = this.synth.getVoices();
+      for (const kw of CONFIG.speechVoiceKeywords) {
+        const v = voices.find(v => v.name.toLowerCase().includes(kw) && v.lang.startsWith('en'));
+        if (v) { this.preferredVoice = v; return; }
+      }
+      // Fallback to any English voice
+      const en = voices.find(v => v.lang.startsWith('en'));
+      if (en) this.preferredVoice = en;
+    };
+    findVoice();
+    if (this.synth.onvoiceschanged !== undefined) {
+      this.synth.onvoiceschanged = findVoice;
+    }
+  },
+
+  warmup() {
+    if (this.warmupDone) return;
+    // iOS Safari requires a user-initiated speech to unlock
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0.01;
+    this.synth.speak(u);
+    this.warmupDone = true;
+  },
+
+  stop() {
+    this.synth.cancel();
+    this.queue = [];
+    this.isSpeaking = false;
+    SM.speaking = false;
+    UI.setSpeaking(false);
+  },
+
+  speak(text, callback) {
+    this.queue.push({ text, callback });
+    if (!this.isSpeaking) this._next();
+  },
+
+  _next() {
+    if (this.queue.length === 0) {
+      this.isSpeaking = false;
+      SM.speaking = false;
+      UI.setSpeaking(false);
+      return;
+    }
+    this.isSpeaking = true;
+    SM.speaking = true;
+    UI.setSpeaking(true);
+
+    const { text, callback } = this.queue.shift();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = CONFIG.speechRate;
+    u.pitch = CONFIG.speechPitch;
+    if (this.preferredVoice) u.voice = this.preferredVoice;
+
+    u.onend = () => {
+      if (callback) callback();
+      setTimeout(() => this._next(), 200);
+    };
+    u.onerror = () => {
+      if (callback) callback();
+      setTimeout(() => this._next(), 200);
+    };
+
+    // iOS pause/resume workaround
+    this.synth.cancel();
+    setTimeout(() => this.synth.speak(u), 50);
+  }
+};
+
+// ============ SPEECH RECOGNITION ============
+const SpeechRec = {
+  recognition: null,
+  available: false,
+
+  init() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      this.recognition = new SR();
+      this.recognition.continuous = false;
+      this.recognition.interimResults = false;
+      this.recognition.lang = 'en-ZA';
+      this.available = true;
+
+      this.recognition.onresult = (e) => {
+        const result = e.results[0][0].transcript.trim();
+        UI.hideListening();
+        SM.listeningForSpeech = false;
+        Flows.handleSpeechResult(result);
+      };
+
+      this.recognition.onerror = (e) => {
+        console.log('Speech rec error:', e.error);
+        UI.hideListening();
+        SM.listeningForSpeech = false;
+        // Fallback: use demo data
+        Flows.handleSpeechFallback();
+      };
+
+      this.recognition.onend = () => {
+        if (SM.listeningForSpeech) {
+          // Timed out without result
+          UI.hideListening();
+          SM.listeningForSpeech = false;
+          Flows.handleSpeechFallback();
+        }
+      };
+    }
+  },
+
+  listen() {
+    SM.listeningForSpeech = true;
+    UI.showListening();
+    if (this.available) {
+      try {
+        this.recognition.start();
+      } catch(e) {
+        // Already running, restart
+        this.recognition.stop();
+        setTimeout(() => {
+          try { this.recognition.start(); } catch(e2) { Flows.handleSpeechFallback(); }
+        }, 200);
+      }
+    } else {
+      // No speech recognition, use fallback after delay
+      setTimeout(() => {
+        UI.hideListening();
+        SM.listeningForSpeech = false;
+        Flows.handleSpeechFallback();
+      }, 2000);
+    }
+  },
+
+  stop() {
+    if (this.recognition) {
+      try { this.recognition.stop(); } catch(e) {}
+    }
+    SM.listeningForSpeech = false;
+    UI.hideListening();
+  }
+};
+
+// ============ HAPTIC ENGINE (visual indicator) ============
+const Haptic = {
+  fire(type) {
+    const labels = {
+      short: '⊛ Short pulse',
+      double: '⊛⊛ Double pulse',
+      long: '⊛⊛⊛ Long vibration',
+      deep: '◉ Deep vibration',
+      home: '∿ Home signature',
+    };
+    UI.setDevHaptic(labels[type] || type);
+    // Try actual vibration if available
+    if (navigator.vibrate) {
+      const patterns = {
+        short: [80],
+        double: [60, 60, 60],
+        long: [300],
+        deep: [150, 50, 150],
+        home: [100, 50, 100, 50, 200],
+      };
+      try { navigator.vibrate(patterns[type] || [80]); } catch(e) {}
+    }
+  }
+};
+
+// ============ TONE ENGINE ============
+const Tones = {
+  ctx: null,
+  init() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  },
+  play(type) {
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.connect(g);
+    g.connect(this.ctx.destination);
+    const t = this.ctx.currentTime;
+
+    if (type === 'chime') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(523, t);
+      o.frequency.setValueAtTime(659, t + 0.12);
+      o.frequency.setValueAtTime(784, t + 0.24);
+      g.gain.setValueAtTime(0.15, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+      o.start(t); o.stop(t + 0.5);
+    } else if (type === 'tone') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(440, t);
+      g.gain.setValueAtTime(0.2, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.6);
+      o.start(t); o.stop(t + 0.6);
+    } else if (type === 'success') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(523, t);
+      o.frequency.setValueAtTime(784, t + 0.15);
+      g.gain.setValueAtTime(0.15, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+      o.start(t); o.stop(t + 0.4);
+    } else if (type === 'click') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(600, t);
+      g.gain.setValueAtTime(0.1, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+      o.start(t); o.stop(t + 0.08);
+    }
+  }
+};
+
+// ============ UI ============
+const UI = {
+  els: {},
+
+  init() {
+    this.els = {
+      mainText: document.getElementById('main-text'),
+      logoArea: document.getElementById('logo-area'),
+      logoCircle: document.getElementById('logo-circle'),
+      speakerIcon: document.getElementById('speaker-icon'),
+      gestureFlash: document.getElementById('gesture-flash'),
+      devJourney: document.getElementById('dev-journey'),
+      devStep: document.getElementById('dev-step'),
+      devGesture: document.getElementById('dev-gesture'),
+      devHaptic: document.getElementById('dev-haptic'),
+      devState: document.getElementById('dev-state'),
+      listeningIndicator: document.getElementById('listening-indicator'),
+      confirmUI: document.getElementById('confirm-ui'),
+      confirmName: document.getElementById('confirm-name'),
+    };
+  },
+
+  showText(text, highlight) {
+    const el = this.els.mainText;
+    el.classList.remove('visible');
+    setTimeout(() => {
+      if (highlight) {
+        // Replace words in brackets with highlights
+        let html = text;
+        // Highlight words in square brackets
+        html = html.replace(/\[([^\]]+)\]/g, '<span class="highlight">$1</span>');
+        el.innerHTML = html;
+      } else {
+        el.textContent = text;
+      }
+      el.classList.add('visible');
+    }, 80);
+  },
+
+  clearText() {
+    this.els.mainText.classList.remove('visible');
+    setTimeout(() => { this.els.mainText.textContent = ''; }, 300);
+  },
+
+  showLogo() { this.els.logoArea.classList.add('visible'); },
+  hideLogo() { this.els.logoArea.classList.remove('visible'); },
+
+  setLogoAction(isAction) {
+    if (isAction) this.els.logoCircle.classList.add('action');
+    else this.els.logoCircle.classList.remove('action');
+  },
+
+  setSpeaking(is) {
+    if (is) this.els.speakerIcon.classList.add('speaking');
+    else this.els.speakerIcon.classList.remove('speaking');
+  },
+
+  flashGesture(name) {
+    const el = this.els.gestureFlash;
+    el.textContent = name;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 500);
+  },
+
+  setDevJourney(j) { this.els.devJourney.textContent = j; },
+  setDevStep(s) { this.els.devStep.textContent = s; },
+  setDevGesture(g) { this.els.devGesture.textContent = g; },
+  setDevHaptic(h) { this.els.devHaptic.textContent = h; },
+  setDevState(s) { this.els.devState.textContent = s; },
+
+  showListening() { this.els.listeningIndicator.classList.add('active'); this.setLogoAction(true); },
+  hideListening() { this.els.listeningIndicator.classList.remove('active'); this.setLogoAction(false); },
+
+  showConfirm(name) {
+    this.els.confirmName.textContent = name;
+    this.els.confirmUI.classList.add('active');
+    this.els.mainText.classList.remove('visible');
+  },
+  hideConfirm() { this.els.confirmUI.classList.remove('active'); },
+};
+
+// ============ GESTURE DETECTOR ============
+const Gestures = {
+  startX: 0, startY: 0,
+  startTime: 0,
+  tapCount: 0,
+  tapTimer: null,
+  longPressTimer: null,
+  isLongPress: false,
+  twoFingerStart: null,
+  activeTouches: 0,
+  isTwoFinger: false,
+
+  init() {
+    const app = document.getElementById('app');
+    app.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
+    app.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
+    app.addEventListener('touchend', this.onTouchEnd.bind(this), { passive: false });
+    app.addEventListener('touchcancel', this.onTouchEnd.bind(this), { passive: false });
+  },
+
+  onTouchStart(e) {
+    if (!SM.audioUnlocked) return;
+    e.preventDefault();
+
+    if (e.touches.length >= 2) {
+      // Two finger touch
+      this.isTwoFinger = true;
+      clearTimeout(this.longPressTimer);
+      clearTimeout(this.tapTimer);
+      this.tapCount = 0;
+      this.isLongPress = false;
+      this.twoFingerStart = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        time: Date.now()
+      };
+      return;
+    }
+
+    // Single finger
+    this.isTwoFinger = false;
+    this.startX = e.touches[0].clientX;
+    this.startY = e.touches[0].clientY;
+    this.startTime = Date.now();
+    this.isLongPress = false;
+
+    this.longPressTimer = setTimeout(() => {
+      this.isLongPress = true;
+      clearTimeout(this.tapTimer);
+      this.tapCount = 0;
+      Tones.play('click');
+      this.dispatch('LONG_PRESS');
+    }, CONFIG.longPressTime);
+  },
+
+  onTouchMove(e) {
+    e.preventDefault();
+    if (e.touches.length === 1 && !this.isTwoFinger) {
+      const dx = e.touches[0].clientX - this.startX;
+      const dy = e.touches[0].clientY - this.startY;
+      if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
+        clearTimeout(this.longPressTimer);
+      }
+    }
+  },
+
+  onTouchEnd(e) {
+    if (!SM.audioUnlocked) return;
+    e.preventDefault();
+
+    clearTimeout(this.longPressTimer);
+
+    // Two finger swipe end
+    if (this.isTwoFinger && this.twoFingerStart && e.touches.length === 0) {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const dx = endX - this.twoFingerStart.x;
+      const dy = endY - this.twoFingerStart.y;
+      const elapsed = Date.now() - this.twoFingerStart.time;
+
+      this.twoFingerStart = null;
+      this.isTwoFinger = false;
+
+      if (elapsed < 800) {
+        if (Math.abs(dy) > CONFIG.twoFingerSwipeThreshold && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+          Tones.play('click');
+          this.dispatch('TWO_FINGER_DOWN');
+          return;
+        }
+        if (Math.abs(dx) > CONFIG.twoFingerSwipeThreshold && dx < 0 && Math.abs(dx) > Math.abs(dy)) {
+          Tones.play('click');
+          this.dispatch('TWO_FINGER_LEFT');
+          return;
+        }
+      }
+      return;
+    }
+
+    if (this.isLongPress || this.isTwoFinger) {
+      this.isTwoFinger = false;
+      return;
+    }
+
+    // Single finger end - check for swipe
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const dx = endX - this.startX;
+    const dy = endY - this.startY;
+
+    if (Math.abs(dy) > CONFIG.swipeThreshold && Math.abs(dy) > Math.abs(dx)) {
+      if (dy < 0) {
+        Tones.play('click');
+        this.dispatch('SWIPE_UP');
+        return;
+      }
+    }
+
+    // It's a tap
+    this.tapCount++;
+    if (this.tapCount === 1) {
+      this.tapTimer = setTimeout(() => {
+        Tones.play('click');
+        this.dispatch('TAP');
+        this.tapCount = 0;
+      }, CONFIG.doubleTapDelay);
+    } else if (this.tapCount >= 2) {
+      clearTimeout(this.tapTimer);
+      Tones.play('click');
+      this.dispatch('DOUBLE_TAP');
+      this.tapCount = 0;
+    }
+  },
+
+  dispatch(gesture) {
+    const names = {
+      TAP: 'Single Tap',
+      DOUBLE_TAP: 'Double Tap',
+      LONG_PRESS: 'Long Press',
+      SWIPE_UP: 'Swipe Up',
+      TWO_FINGER_LEFT: '2F Swipe Left',
+      TWO_FINGER_DOWN: '2F Swipe Down',
+    };
+    UI.flashGesture(names[gesture] || gesture);
+    UI.setDevGesture(names[gesture] || gesture);
+    Flows.handleGesture(gesture);
+  }
+};
+
+// ============ FLOW CONTROLLER ============
+const Flows = {
+  speakAndShow(text, stepId, callback) {
+    if (stepId) {
+      const parts = stepId.split('.');
+      UI.setDevStep(stepId);
+    }
+    Speech.stop();
+    // Clean text for display (remove brackets for speech)
+    const displayText = text;
+    const speechText = text.replace(/\[/g, '').replace(/\]/g, '');
+    UI.showText(displayText, true);
+    Speech.speak(speechText, callback);
+  },
+
+  setJourney(j, phase) {
+    SM.journey = j;
+    SM.phase = phase;
+    UI.setDevJourney(j);
+    UI.setDevState(phase || '');
+  },
+
+  // ====== MAIN GESTURE ROUTER ======
+  handleGesture(gesture) {
+    // If listening for speech, ignore gestures (except in specific contexts)
+    if (SM.listeningForSpeech) return;
+
+    // If awaiting confirmation (tap=yes, double=no)
+    if (SM.awaitingConfirm) {
+      this.handleConfirmGesture(gesture);
+      return;
+    }
+
+    // If in gesture training, route there
+    if (SM.journey === '3. Gesture Training' && SM.awaitingGesture) {
+      this.handleGestureTraining(gesture);
+      return;
+    }
+
+    // Journey-specific routing
+    switch(SM.journey) {
+      case '1. Welcome': this.handleWelcome(gesture); break;
+      case '2. Onboarding': this.handleOnboarding(gesture); break;
+      case '3. Gesture Training': this.handleGestureTrainingNav(gesture); break;
+      case '4. Home Intro': this.handleHomeIntro(gesture); break;
+      case '5. App Library Setup': this.handleAppLibrarySetup(gesture); break;
+      case '6. Uber Setup': this.handleUberSetup(gesture); break;
+      case '7. Web Content Setup': this.handleWebContentSetup(gesture); break;
+      case '8. Uber Journey': this.handleUberJourney(gesture); break;
+      case '9. BBC Journey': this.handleBBCJourney(gesture); break;
+    }
+  },
+
+  // ====== JOURNEY 1: WELCOME ======
+  startWelcome() {
+    this.setJourney('1. Welcome', 'Audio Unlock');
+    SM.step = '1.1';
+    UI.setDevStep('1.1');
+    UI.setDevState('Waiting for tap');
+    // Black screen, waiting for first tap
+  },
+
+  handleWelcome(gesture) {
+    if (gesture === 'TAP' && SM.step === '1.1') {
+      SM.step = '1.2';
+      Haptic.fire('short');
+      Tones.play('chime');
+      this.setJourney('1. Welcome', 'Welcome');
+      setTimeout(() => {
+        this.speakAndShow(
+          'Welcome to [Seequence]. I am here to help you use your phone independently.',
+          '1.2',
+          () => {
+            SM.step = '1.3';
+            this.speakAndShow(
+              "Let's get started by getting to know you. Tap anywhere to continue.",
+              '1.3'
+            );
+          }
+        );
+      }, 600);
+    } else if (gesture === 'TAP' && (SM.step === '1.3' || SM.step === '1.4')) {
+      SM.step = '1.4';
+      Haptic.fire('short');
+      this.startOnboarding();
+    }
+  },
+
+  // ====== JOURNEY 2: ONBOARDING ======
+  startOnboarding() {
+    this.setJourney('2. Onboarding', 'Name Request');
+    UI.showLogo();
+    SM.step = '2.1';
+    this.speakAndShow(
+      'What is your name? When you hear the tone, please say your name.',
+      '2.1',
+      () => {
+        SM.step = '2.2';
+        Tones.play('tone');
+        SM.pendingInput = 'name';
+        setTimeout(() => SpeechRec.listen(), 800);
+      }
+    );
+  },
+
+  handleOnboarding(gesture) {
+    // Most onboarding handled via speech recognition and confirmation
+  },
+
+  handleSpeechResult(result) {
+    if (SM.pendingInput === 'name') {
+      SM.pendingValue = result;
+      SM.step = '2.3';
+      SM.awaitingConfirm = true;
+      SM.confirmContext = 'name';
+      UI.showConfirm(result);
+      this.speakAndShow(
+        `I heard [${result}]. Is that correct? Tap once for yes, or double tap for no.`,
+        '2.3'
+      );
+    } else if (SM.pendingInput === 'app_name') {
+      SM.pendingValue = result;
+      SM.awaitingConfirm = true;
+      SM.confirmContext = 'app_name';
+      this.speakAndShow(
+        `I heard [${result}]. Tap to confirm, or double tap to try again.`,
+        SM.step
+      );
+    } else if (SM.pendingInput === 'address') {
+      SM.pendingValue = result;
+      SM.awaitingConfirm = true;
+      SM.confirmContext = 'address';
+      this.speakAndShow(
+        `I heard [${result}]. Tap to confirm, or double tap to try again.`,
+        SM.step
+      );
+    } else if (SM.pendingInput === 'website') {
+      SM.pendingValue = result;
+      SM.awaitingConfirm = true;
+      SM.confirmContext = 'website';
+      this.speakAndShow(
+        `I heard [${result}]. Tap to confirm, or double tap to try again.`,
+        SM.step
+      );
+    } else if (SM.pendingInput === 'category_name') {
+      SM.pendingValue = result;
+      SM.awaitingConfirm = true;
+      SM.confirmContext = 'category_name';
+      this.speakAndShow(
+        `I heard [${result}]. Tap to confirm, or double tap to try again.`,
+        SM.step
+      );
+    }
+  },
+
+  handleSpeechFallback() {
+    // Use demo data as fallback
+    if (SM.pendingInput === 'name') {
+      this.handleSpeechResult('Thabo');
+    } else if (SM.pendingInput === 'app_name') {
+      const cat = SM.addingAppToCategory;
+      const catKey = cat.toLowerCase();
+      const apps = DEMO.apps[catKey] || ['App'];
+      const idx = SM.setupAppsAdded.length;
+      this.handleSpeechResult(apps[idx] || 'App');
+    } else if (SM.pendingInput === 'address') {
+      if (SM.confirmContext === 'home_address' || SM.step === '6.3') {
+        this.handleSpeechResult(DEMO.uberHome);
+      } else {
+        this.handleSpeechResult(DEMO.uberWork);
+      }
+    } else if (SM.pendingInput === 'website') {
+      const idx = SM.setupAppsAdded.length;
+      this.handleSpeechResult(DEMO.websites[idx] || 'Wikipedia');
+    } else if (SM.pendingInput === 'category_name') {
+      this.handleSpeechResult('Entertainment');
+    }
+  },
+
+  handleConfirmGesture(gesture) {
+    if (gesture === 'TAP') {
+      // YES
+      SM.awaitingConfirm = false;
+      UI.hideConfirm();
+      Haptic.fire('short');
+
+      if (SM.confirmContext === 'name') {
+        DEMO.userName = SM.pendingValue;
+        SM.step = '2.4a';
+        this.speakAndShow(
+          `Wonderful. It's lovely to meet you, [${DEMO.userName}].`,
+          '2.4a',
+          () => {
+            SM.step = '2.5';
+            this.speakAndShow(
+              'Now let me teach you how to use Seequence. Tap anywhere to begin.',
+              '2.5'
+            );
+            SM.journey = '2. Onboarding';
+            SM.phase = 'Transition';
+            SM.awaitingGesture = 'TAP_TO_START_TRAINING';
+          }
+        );
+      } else if (SM.confirmContext === 'category_name') {
+        const catName = SM.pendingValue;
+        SM.categories.push(catName);
+        DEMO.customCategories.push(catName);
+        DEMO.apps[catName.toLowerCase()] = [];
+        this.speakAndShow(
+          `[${catName}] added. Would you like to add another category? Tap for yes, double tap for no.`,
+          '5.5a'
+        );
+        SM.awaitingConfirm = true;
+        SM.confirmContext = 'add_another_category';
+      } else if (SM.confirmContext === 'add_another_category') {
+        // Yes, add another
+        SM.awaitingConfirm = false;
+        SM.pendingInput = 'category_name';
+        this.speakAndShow(
+          'Long press and say the name of your new category.',
+          '5.3a'
+        );
+        SM.phase = 'Custom - Add';
+      } else if (SM.confirmContext === 'app_name') {
+        const appName = SM.pendingValue;
+        SM.setupAppsAdded.push(appName);
+        const cat = SM.addingAppToCategory;
+        const catKey = cat.toLowerCase();
+        if (!DEMO.apps[catKey]) DEMO.apps[catKey] = [];
+        DEMO.apps[catKey].push(appName);
+        this.speakAndShow(
+          `[${appName}] is installed on your phone. Added to [${cat}].`,
+          SM.step,
+          () => {
+            this.speakAndShow(
+              `Long press and speak your next app, or swipe left when done with [${cat}].`,
+              SM.step
+            );
+            SM.phase = 'Adding apps';
+            SM.pendingInput = 'app_name';
+          }
+        );
+      } else if (SM.confirmContext === 'address') {
+        this.handleAddressConfirm();
+      } else if (SM.confirmContext === 'website') {
+        const site = SM.pendingValue;
+        SM.setupAppsAdded.push(site);
+        if (!DEMO.websites.includes(site)) DEMO.websites.push(site);
+        this.speakAndShow(
+          `[${site}] added to Web Content.`,
+          '7.4',
+          () => {
+            this.speakAndShow(
+              'Long press and speak your next website, or swipe left when done.',
+              '7.5'
+            );
+            SM.pendingInput = 'website';
+          }
+        );
+      }
+    } else if (gesture === 'DOUBLE_TAP') {
+      // NO
+      SM.awaitingConfirm = false;
+      UI.hideConfirm();
+      Haptic.fire('double');
+
+      if (SM.confirmContext === 'name') {
+        SM.step = '2.4b';
+        this.speakAndShow(
+          "No problem. Let's try again. When you hear the tone, please say your name.",
+          '2.4b',
+          () => {
+            Tones.play('tone');
+            SM.pendingInput = 'name';
+            setTimeout(() => SpeechRec.listen(), 800);
+          }
+        );
+      } else if (SM.confirmContext === 'add_another_category') {
+        // No more categories
+        SM.awaitingConfirm = false;
+        this.speakAndShow(
+          "Let's add apps to your categories.",
+          '5.3b',
+          () => this.startCategorySetup(0)
+        );
+      } else if (SM.confirmContext === 'app_name') {
+        this.speakAndShow(
+          "Let's try again. Long press and speak the app name.",
+          SM.step
+        );
+        SM.pendingInput = 'app_name';
+      } else if (SM.confirmContext === 'address') {
+        this.speakAndShow("Let's try again. Long press and say your full address.", SM.step);
+        SM.pendingInput = 'address';
+      } else if (SM.confirmContext === 'website') {
+        this.speakAndShow("Let's try again. Long press and speak the website name.", SM.step);
+        SM.pendingInput = 'website';
+      } else if (SM.confirmContext === 'custom_categories') {
+        // No custom categories
+        SM.awaitingConfirm = false;
+        this.speakAndShow(
+          "Let's add apps to your categories.",
+          '5.3b',
+          () => this.startCategorySetup(0)
+        );
+      }
+    }
+  },
+
+  // ====== JOURNEY 3: GESTURE TRAINING ======
+  startGestureTraining() {
+    this.setJourney('3. Gesture Training', 'Introduction');
+    SM.step = '3.1';
+    SM.gestureTrainingStep = 0;
+    this.speakAndShow(
+      '[Seequence] uses six simple gestures. Let\'s learn them one by one.',
+      '3.1',
+      () => this.teachNextGesture()
+    );
+  },
+
+  teachNextGesture() {
+    SM.gestureTrainingStep++;
+    const steps = [
+      // Step 1: Single Tap
+      {
+        intro: 'The first gesture is [Single Tap]. Single tap tells you where you are and what you can do.',
+        prompt: 'Now try single tap anywhere on your screen.',
+        gesture: 'TAP',
+        success: 'Well done! Remember, single tap tells you where you are.',
+        steps: ['3.2', '3.3', '3.4']
+      },
+      // Step 2: Double Tap
+      {
+        intro: 'The second gesture is [Double Tap]. Double tap moves you to the next item.',
+        prompt: 'Now try double tap anywhere on your screen.',
+        gesture: 'DOUBLE_TAP',
+        success: 'Well done! Remember, double tap moves you forward.',
+        steps: ['3.5', '3.6', '3.7']
+      },
+      // Step 3: Swipe Up
+      {
+        intro: 'The third gesture is [Swipe Up]. Swipe up moves you to the previous item.',
+        prompt: 'Now try swipe up anywhere on your screen.',
+        gesture: 'SWIPE_UP',
+        success: 'Well done! Remember, swipe up moves you backward.',
+        steps: ['3.8', '3.9', '3.10']
+      },
+      // Step 4: Long Press
+      {
+        intro: 'The fourth gesture is [Long Press]. Long press selects or confirms. It also starts voice input when you need to speak.',
+        prompt: 'Now try long press. Hold your finger on the screen for one second, then release.',
+        gesture: 'LONG_PRESS',
+        success: 'Well done! Remember, long press selects or starts voice input.',
+        steps: ['3.11', '3.12', '3.13']
+      },
+      // Step 5: Two-Finger Swipe Left (Back)
+      {
+        intro: 'The fifth gesture is [Two-Finger Swipe Left]. This takes you back one level.',
+        prompt: 'Now try it. Place two fingers on the screen and swipe left.',
+        gesture: 'TWO_FINGER_LEFT',
+        success: 'Well done! Remember, two-finger swipe left takes you back one level.',
+        steps: ['3.14', '3.15', '3.16']
+      },
+      // Step 6: Two-Finger Swipe Down (Home)
+      {
+        intro: 'The sixth gesture is [Two-Finger Swipe Down]. This takes you home from anywhere. You can never get lost.',
+        prompt: 'Now try it. Place two fingers on the screen and swipe down.',
+        gesture: 'TWO_FINGER_DOWN',
+        success: 'Well done! Remember, two-finger swipe down takes you home from anywhere.',
+        steps: ['3.17', '3.18', '3.19']
+      },
+    ];
+
+    const idx = SM.gestureTrainingStep - 1;
+    if (idx >= steps.length) {
+      this.finishGestureTraining();
+      return;
+    }
+
+    const s = steps[idx];
+    SM.phase = s.gesture;
+    this.speakAndShow(s.intro, s.steps[0], () => {
+      this.speakAndShow(s.prompt, s.steps[1]);
+      SM.awaitingGesture = s.gesture;
+      SM._currentTrainingSuccess = s.success;
+      SM._currentTrainingStep = s.steps[2];
+      UI.setLogoAction(true);
+    });
+  },
+
+  handleGestureTraining(gesture) {
+    if (gesture === SM.awaitingGesture) {
+      Haptic.fire('short');
+      Tones.play('success');
+      SM.awaitingGesture = null;
+      UI.setLogoAction(false);
+      this.speakAndShow(SM._currentTrainingSuccess, SM._currentTrainingStep, () => {
+        this.teachNextGesture();
+      });
+    }
+    // Wrong gesture — just ignore silently
+  },
+
+  finishGestureTraining() {
+    SM.step = '3.20';
+    const name = DEMO.userName || 'friend';
+    this.speakAndShow(
+      `Excellent, [${name}]! You have learned all six gestures. Single tap to know where you are. Double tap to move forward. Swipe up to move backward. Long press to select. Two-finger swipe left to go back one level. Two-finger swipe down to go home.`,
+      '3.20',
+      () => {
+        SM.step = '3.21';
+        this.speakAndShow(
+          "You are now ready. Let's set up your personal Seequence. Tap anywhere to continue.",
+          '3.21'
+        );
+        SM.awaitingGesture = null;
+        SM.journey = '3. Gesture Training';
+        SM.phase = 'Transition';
+      }
+    );
+  },
+
+  handleGestureTrainingNav(gesture) {
+    if (SM.phase === 'Transition' && gesture === 'TAP') {
+      SM.step = '3.22';
+      Haptic.fire('short');
+      this.startHomeIntro();
+    } else if (gesture === 'TAP' && SM.journey === '2. Onboarding' && SM.phase === 'Transition') {
+      // Tap to start training from onboarding transition
+      Haptic.fire('short');
+      this.startGestureTraining();
+    }
+  },
+
+  // ====== JOURNEY 4: HOME INTRO ======
+  startHomeIntro() {
+    this.setJourney('4. Home Intro', 'Orientation');
+    SM.step = '4.1';
+    Haptic.fire('home');
+    this.speakAndShow(
+      'You are now in the [Home Screen]. This is where you will always start.',
+      '4.1',
+      () => {
+        SM.step = '4.2';
+        this.speakAndShow(
+          'Seequence has two main areas. [App Library], where your apps live. And [Web Content], where you can read news and browse the internet.',
+          '4.2',
+          () => {
+            SM.step = '4.3';
+            this.speakAndShow(
+              'Right now you are on [App Library]. Double tap to move to Web Content. Swipe up to move back. Long press to enter.',
+              '4.3',
+              () => {
+                SM.step = '4.4';
+                this.speakAndShow(
+                  "Let's set up your [App Library] first. Long press to enter.",
+                  '4.4'
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  },
+
+  handleHomeIntro(gesture) {
+    if (gesture === 'LONG_PRESS' && (SM.step === '4.4' || SM.step === '4.3')) {
+      SM.step = '4.5';
+      Haptic.fire('deep');
+      this.speakAndShow(
+        'You are now in [App Library].',
+        '4.5',
+        () => this.startAppLibrarySetup()
+      );
+    }
+  },
+
+  // ====== JOURNEY 5: APP LIBRARY SETUP ======
+  startAppLibrarySetup() {
+    this.setJourney('5. App Library Setup', 'Categories Intro');
+    SM.step = '5.1';
+    SM.categories = ['Communication', 'Mobility', 'Finance', 'Utilities'];
+    this.speakAndShow(
+      'App Library has four categories. [Communication] for calls and messages. [Mobility] for rides and navigation. [Finance] for banking and payments. [Utilities] for everyday tools.',
+      '5.1',
+      () => {
+        SM.step = '5.2';
+        SM.awaitingConfirm = true;
+        SM.confirmContext = 'custom_categories';
+        this.speakAndShow(
+          'Would you like to add any other categories? Tap once for yes, tap twice for no.',
+          '5.2'
+        );
+      }
+    );
+  },
+
+  startCategorySetup(catIndex) {
+    if (catIndex >= SM.categories.length) {
+      // All categories done
+      this.finishAppLibrarySetup();
+      return;
+    }
+
+    SM.currentCategory = catIndex;
+    const cat = SM.categories[catIndex];
+    SM.addingAppToCategory = cat;
+    SM.setupAppsAdded = [];
+    SM.phase = cat;
+
+    const stepBase = catIndex === 0 ? '5.6' : (catIndex === 1 ? '5.12' : (catIndex === 2 ? '5.18' : '5.23'));
+    SM.step = stepBase;
+
+    this.speakAndShow(
+      `You are in [${cat}]. Speak the name of your first ${cat.toLowerCase()} app.`,
+      stepBase,
+      () => {
+        SM.pendingInput = 'app_name';
+        // Wait for long press to trigger speech
+      }
+    );
+  },
+
+  handleAppLibrarySetup(gesture) {
+    if (SM.pendingInput === 'app_name' && gesture === 'LONG_PRESS') {
+      // Start listening for app name
+      Haptic.fire('deep');
+      Tones.play('tone');
+      setTimeout(() => SpeechRec.listen(), 600);
+      return;
+    }
+
+    if (SM.pendingInput === 'category_name' && gesture === 'LONG_PRESS') {
+      Haptic.fire('deep');
+      Tones.play('tone');
+      setTimeout(() => SpeechRec.listen(), 600);
+      return;
+    }
+
+    if (gesture === 'TWO_FINGER_LEFT' && SM.phase === 'Adding apps') {
+      // Done with this category
+      const cat = SM.addingAppToCategory;
+      const catIdx = SM.currentCategory;
+      Haptic.fire('short');
+      const totalCats = SM.categories.length;
+      this.speakAndShow(
+        `[${cat}] is set up. You are in App Library. [${cat}]. Category ${catIdx + 1} of ${totalCats}.`,
+        SM.step,
+        () => {
+          // Move to next category
+          this.startCategorySetup(catIdx + 1);
+        }
+      );
+    }
+  },
+
+  finishAppLibrarySetup() {
+    this.speakAndShow(
+      'Your [App Library] is ready.',
+      '5.26',
+      () => {
+        // Check if Uber was added
+        const hasMobility = DEMO.apps.mobility && DEMO.apps.mobility.some(a => a.toLowerCase().includes('uber'));
+        if (hasMobility) {
+          this.startUberSetup();
+        } else {
+          this.startWebContentSetup();
+        }
+      }
+    );
+  },
+
+  // ====== JOURNEY 6: UBER SETUP ======
+  startUberSetup() {
+    this.setJourney('6. Uber Setup', 'Introduction');
+    SM.step = '6.1';
+    this.speakAndShow(
+      "I noticed you added [Uber]. Let's set it up for quick rides. I need to know your home and work addresses.",
+      '6.1',
+      () => {
+        SM.step = '6.2';
+        SM.pendingInput = 'address';
+        SM.confirmContext = 'home_address';
+        this.speakAndShow(
+          'What is your [home address]? Long press and say your full address.',
+          '6.2'
+        );
+      }
+    );
+  },
+
+  handleUberSetup(gesture) {
+    if (gesture === 'LONG_PRESS' && SM.pendingInput === 'address') {
+      Haptic.fire('deep');
+      Tones.play('tone');
+      setTimeout(() => SpeechRec.listen(), 600);
+    }
+  },
+
+  handleAddressConfirm() {
+    const addr = SM.pendingValue;
+    if (SM.step === '6.3' || SM.confirmContext === 'home_address') {
+      DEMO.uberHome = addr;
+      SM.step = '6.4';
+      this.speakAndShow(
+        `[${addr}] saved as your home.`,
+        '6.4',
+        () => {
+          SM.step = '6.5';
+          SM.pendingInput = 'address';
+          SM.confirmContext = 'work_address';
+          this.speakAndShow(
+            'What is your [work address]? Long press and say your full address.',
+            '6.5'
+          );
+        }
+      );
+    } else {
+      DEMO.uberWork = addr;
+      SM.step = '6.7';
+      this.speakAndShow(
+        `[${addr}] saved as your work. [Uber] is ready to use.`,
+        '6.7',
+        () => this.startWebContentSetup()
+      );
+    }
+  },
+
+  // ====== JOURNEY 7: WEB CONTENT SETUP ======
+  startWebContentSetup() {
+    this.setJourney('7. Web Content Setup', 'Introduction');
+    SM.step = '7.1';
+    SM.setupAppsAdded = [];
+    this.speakAndShow(
+      "Now let's set up your [Web Content]. These are websites you can read and browse.",
+      '7.1',
+      () => {
+        SM.step = '7.2';
+        SM.pendingInput = 'website';
+        this.speakAndShow(
+          'Speak the name of your first website.',
+          '7.2'
+        );
+      }
+    );
+  },
+
+  handleWebContentSetup(gesture) {
+    if (gesture === 'LONG_PRESS' && SM.pendingInput === 'website') {
+      Haptic.fire('deep');
+      Tones.play('tone');
+      setTimeout(() => SpeechRec.listen(), 600);
+    }
+
+    if (gesture === 'TWO_FINGER_LEFT') {
+      // Done adding websites
+      Haptic.fire('short');
+      SM.step = '7.6';
+      this.speakAndShow(
+        'Web Content is set up.',
+        '7.6',
+        () => {
+          SM.step = '7.7';
+          const name = DEMO.userName || 'friend';
+          Tones.play('success');
+          Haptic.fire('home');
+          this.speakAndShow(
+            `Congratulations, [${name}]! Your personal Seequence is ready. You are in the [Home Screen]. You are on [App Library]. Enjoy your independence.`,
+            '7.7',
+            () => {
+              // Transition to live navigation
+              SM.homePosition = 'app_library';
+              this.startUberJourney();
+            }
+          );
+        }
+      );
+    }
+  },
+
+  // ====== JOURNEY 8: UBER JOURNEY ======
+  startUberJourney() {
+    this.setJourney('8. Uber Journey', 'Home');
+    SM.step = '8.1';
+    SM.homePosition = 'app_library';
+    SM.currentCategory = 0;
+    UI.setDevState('Home > App Library');
+    // User is at home screen, waiting for gestures
+  },
+
+  handleUberJourney(gesture) {
+    const s = SM.step;
+
+    // HOME SCREEN
+    if (s === '8.1' || SM.phase === 'Home') {
+      if (gesture === 'TAP') {
+        SM.step = '8.1';
+        Haptic.fire('short');
+        this.speakAndShow(
+          `You are in the [Home Screen]. You are on [${SM.homePosition === 'app_library' ? 'App Library' : 'Web Content'}]. Double tap for ${SM.homePosition === 'app_library' ? 'Web Content' : 'App Library'}, long press to enter.`,
+          '8.1'
+        );
+      } else if (gesture === 'DOUBLE_TAP') {
+        SM.homePosition = SM.homePosition === 'app_library' ? 'web_content' : 'app_library';
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${SM.homePosition === 'app_library' ? 'App Library' : 'Web Content'}]. Long press to enter.`,
+          '8.1'
+        );
+      } else if (gesture === 'LONG_PRESS') {
+        if (SM.homePosition === 'app_library') {
+          SM.step = '8.2';
+          SM.phase = 'Categories';
+          SM.currentCategory = 0;
+          Haptic.fire('deep');
+          const cat = SM.categories[0];
+          this.speakAndShow(
+            `You are in [App Library]. [${cat}]. Category 1 of ${SM.categories.length}. Double tap for next, swipe up for previous, long press to enter, swipe left to go back.`,
+            '8.2'
+          );
+          UI.setDevState('App Library > ' + cat);
+        } else {
+          // Enter web content - redirect to BBC journey
+          this.startBBCJourney();
+        }
+      }
+      return;
+    }
+
+    // CATEGORY NAVIGATION
+    if (SM.phase === 'Categories') {
+      if (gesture === 'TAP') {
+        const cat = SM.categories[SM.currentCategory];
+        Haptic.fire('short');
+        this.speakAndShow(
+          `[${cat}]. Category ${SM.currentCategory + 1} of ${SM.categories.length}.`,
+          SM.step
+        );
+      } else if (gesture === 'DOUBLE_TAP') {
+        SM.currentCategory = (SM.currentCategory + 1) % SM.categories.length;
+        const cat = SM.categories[SM.currentCategory];
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${cat}]. Category ${SM.currentCategory + 1} of ${SM.categories.length}.`,
+          SM.step
+        );
+        UI.setDevState('App Library > ' + cat);
+      } else if (gesture === 'SWIPE_UP') {
+        SM.currentCategory = SM.currentCategory === 0 ? SM.categories.length - 1 : SM.currentCategory - 1;
+        const cat = SM.categories[SM.currentCategory];
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${cat}]. Category ${SM.currentCategory + 1} of ${SM.categories.length}.`,
+          SM.step
+        );
+        UI.setDevState('App Library > ' + cat);
+      } else if (gesture === 'LONG_PRESS') {
+        // Enter category
+        const cat = SM.categories[SM.currentCategory];
+        const catKey = cat.toLowerCase();
+        SM.appsInCurrentCategory = DEMO.apps[catKey] || [];
+        SM.currentAppInCategory = 0;
+        SM.phase = 'InCategory';
+        Haptic.fire('deep');
+        if (SM.appsInCurrentCategory.length > 0) {
+          const app = SM.appsInCurrentCategory[0];
+          this.speakAndShow(
+            `You are in [${cat}]. [${app}]. App 1 of ${SM.appsInCurrentCategory.length}. Double tap for next app, swipe up for previous, long press to open, swipe left to go back.`,
+            '8.6'
+          );
+          UI.setDevState(cat + ' > ' + app);
+        } else {
+          this.speakAndShow(
+            `[${cat}] is empty. Swipe left to go back.`,
+            SM.step
+          );
+        }
+      } else if (gesture === 'TWO_FINGER_LEFT') {
+        // Back to home
+        SM.phase = 'Home';
+        SM.step = '8.1';
+        Haptic.fire('short');
+        this.speakAndShow(
+          `You are in the [Home Screen]. You are on [App Library].`,
+          '8.20'
+        );
+        UI.setDevState('Home > App Library');
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.step = '8.1';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          `You are in the [Home Screen]. You are on [App Library].`,
+          '8.21'
+        );
+        UI.setDevState('Home > App Library');
+      }
+      return;
+    }
+
+    // INSIDE CATEGORY (App list)
+    if (SM.phase === 'InCategory') {
+      const cat = SM.categories[SM.currentCategory];
+      const apps = SM.appsInCurrentCategory;
+      if (gesture === 'TAP') {
+        const app = apps[SM.currentAppInCategory];
+        Haptic.fire('short');
+        this.speakAndShow(
+          `[${app}]. App ${SM.currentAppInCategory + 1} of ${apps.length}.`,
+          '8.7'
+        );
+      } else if (gesture === 'DOUBLE_TAP') {
+        SM.currentAppInCategory = (SM.currentAppInCategory + 1) % apps.length;
+        const app = apps[SM.currentAppInCategory];
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${app}]. App ${SM.currentAppInCategory + 1} of ${apps.length}.`,
+          SM.step
+        );
+        UI.setDevState(cat + ' > ' + app);
+      } else if (gesture === 'SWIPE_UP') {
+        SM.currentAppInCategory = SM.currentAppInCategory === 0 ? apps.length - 1 : SM.currentAppInCategory - 1;
+        const app = apps[SM.currentAppInCategory];
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${app}]. App ${SM.currentAppInCategory + 1} of ${apps.length}.`,
+          SM.step
+        );
+        UI.setDevState(cat + ' > ' + app);
+      } else if (gesture === 'LONG_PRESS') {
+        // Open the app
+        const app = apps[SM.currentAppInCategory];
+        Haptic.fire('deep');
+        if (app.toLowerCase() === 'uber') {
+          this.openUber();
+        } else {
+          this.speakAndShow(
+            `[${app}] opened. ⊛ In the full app, this would launch ${app}. Swipe left to go back.`,
+            SM.step
+          );
+          SM.phase = 'InApp';
+          UI.setDevState(cat + ' > ' + app + ' (open)');
+        }
+      } else if (gesture === 'TWO_FINGER_LEFT') {
+        SM.phase = 'Categories';
+        Haptic.fire('short');
+        this.speakAndShow(
+          `You are in [App Library]. [${cat}]. Category ${SM.currentCategory + 1} of ${SM.categories.length}.`,
+          '8.19'
+        );
+        UI.setDevState('App Library > ' + cat);
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.step = '8.1';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          `You are in the [Home Screen]. You are on [App Library].`,
+          '8.21'
+        );
+        UI.setDevState('Home > App Library');
+      }
+      return;
+    }
+
+    // INSIDE APP (generic)
+    if (SM.phase === 'InApp') {
+      if (gesture === 'TWO_FINGER_LEFT') {
+        SM.phase = 'InCategory';
+        Haptic.fire('short');
+        const cat = SM.categories[SM.currentCategory];
+        const app = SM.appsInCurrentCategory[SM.currentAppInCategory];
+        this.speakAndShow(
+          `You are in [${cat}]. [${app}]. App ${SM.currentAppInCategory + 1} of ${SM.appsInCurrentCategory.length}.`,
+          '8.18'
+        );
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.step = '8.1';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          `You are in the [Home Screen]. You are on [App Library].`,
+          '8.21'
+        );
+      }
+      return;
+    }
+
+    // UBER FLOW
+    if (SM.phase === 'Uber') {
+      this.handleUberApp(gesture);
+      return;
+    }
+
+    // UBER RIDE
+    if (SM.phase === 'UberRide') {
+      if (gesture === 'TWO_FINGER_LEFT' || gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'InCategory';
+        Haptic.fire('short');
+        const cat = SM.categories[SM.currentCategory];
+        this.speakAndShow(
+          `You are in [Mobility]. [Uber]. App 1 of ${SM.appsInCurrentCategory.length}.`,
+          '8.18'
+        );
+      }
+      return;
+    }
+  },
+
+  openUber() {
+    SM.phase = 'Uber';
+    SM.uberDestIndex = 0;
+    SM.step = '8.8';
+    this.speakAndShow(
+      'Uber is open. Where would you like to go? You are on [Home]. Double tap for Work, long press to select.',
+      '8.8'
+    );
+    UI.setDevState('Uber > Destination select');
+  },
+
+  handleUberApp(gesture) {
+    if (gesture === 'TAP') {
+      const dest = SM.uberDests[SM.uberDestIndex];
+      Haptic.fire('short');
+      this.speakAndShow(`[${dest}].`, SM.step);
+    } else if (gesture === 'DOUBLE_TAP') {
+      SM.uberDestIndex = (SM.uberDestIndex + 1) % SM.uberDests.length;
+      const dest = SM.uberDests[SM.uberDestIndex];
+      Haptic.fire('double');
+      this.speakAndShow(`[${dest}].`, SM.step);
+    } else if (gesture === 'SWIPE_UP') {
+      SM.uberDestIndex = SM.uberDestIndex === 0 ? SM.uberDests.length - 1 : SM.uberDestIndex - 1;
+      const dest = SM.uberDests[SM.uberDestIndex];
+      Haptic.fire('double');
+      this.speakAndShow(`[${dest}].`, SM.step);
+    } else if (gesture === 'LONG_PRESS') {
+      const dest = SM.uberDests[SM.uberDestIndex];
+      Haptic.fire('deep');
+      SM.step = '8.13';
+      this.speakAndShow(
+        `[${dest}] selected. Finding your driver. Please wait.`,
+        '8.13',
+        () => this.simulateUberRide(dest)
+      );
+    } else if (gesture === 'TWO_FINGER_LEFT') {
+      SM.phase = 'InCategory';
+      Haptic.fire('short');
+      this.speakAndShow(
+        `You are in [Mobility]. [Uber]. App 1 of ${SM.appsInCurrentCategory.length}.`,
+        '8.18'
+      );
+    } else if (gesture === 'TWO_FINGER_DOWN') {
+      SM.phase = 'Home';
+      SM.step = '8.1';
+      SM.homePosition = 'app_library';
+      Haptic.fire('home');
+      this.speakAndShow(
+        `You are in the [Home Screen]. You are on [App Library].`,
+        '8.21'
+      );
+    }
+  },
+
+  simulateUberRide(dest) {
+    SM.phase = 'UberRide';
+    SM.step = '8.14';
+    UI.setLogoAction(true);
+
+    const steps = [
+      { text: 'Driver found. [Sipho] is on the way in a white Toyota Corolla. Arriving in 4 minutes.', step: '8.14', delay: 2500, haptic: 'short' },
+      { text: 'Your driver has arrived. Please make your way to the car.', step: '8.15', delay: 4000, haptic: 'long' },
+      { text: `Trip started. You are on your way to [${dest}]. Estimated arrival in 12 minutes.`, step: '8.16', delay: 3500, haptic: 'short' },
+      { text: `You have arrived at [${dest}]. Have a great day.`, step: '8.17', delay: 4000, haptic: 'long' },
+    ];
+
+    let i = 0;
+    const runStep = () => {
+      if (i >= steps.length) {
+        UI.setLogoAction(false);
+        SM.phase = 'InCategory';
+        SM.step = '8.18';
+        // Auto transition back
+        setTimeout(() => {
+          this.speakAndShow(
+            'Ride complete. Swipe left to go back, or two-finger swipe down for home.',
+            '8.18'
+          );
+        }, 1500);
+        return;
+      }
+      const step = steps[i];
+      setTimeout(() => {
+        Haptic.fire(step.haptic);
+        this.speakAndShow(step.text, step.step, () => {
+          i++;
+          runStep();
+        });
+      }, i === 0 ? 500 : step.delay);
+    };
+    runStep();
+  },
+
+  // ====== JOURNEY 9: BBC JOURNEY ======
+  startBBCJourney() {
+    this.setJourney('9. BBC Journey', 'Home');
+    SM.step = '9.1';
+    SM.homePosition = 'web_content';
+    SM.currentWebsite = 0;
+    SM.currentArticle = 0;
+    SM.currentParagraph = 0;
+    SM.phase = 'Home';
+    UI.setDevState('Home > Web Content');
+  },
+
+  handleBBCJourney(gesture) {
+    // HOME
+    if (SM.phase === 'Home') {
+      if (gesture === 'TAP') {
+        Haptic.fire('short');
+        this.speakAndShow(
+          `You are in the [Home Screen]. You are on [${SM.homePosition === 'app_library' ? 'App Library' : 'Web Content'}]. Double tap for ${SM.homePosition === 'app_library' ? 'Web Content' : 'App Library'}.`,
+          '9.1'
+        );
+      } else if (gesture === 'DOUBLE_TAP') {
+        SM.homePosition = SM.homePosition === 'app_library' ? 'web_content' : 'app_library';
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${SM.homePosition === 'app_library' ? 'App Library' : 'Web Content'}]. Long press to enter.`,
+          '9.2'
+        );
+      } else if (gesture === 'LONG_PRESS') {
+        if (SM.homePosition === 'web_content') {
+          SM.phase = 'WebList';
+          SM.currentWebsite = 0;
+          Haptic.fire('deep');
+          const site = DEMO.websites[0];
+          this.speakAndShow(
+            `You are in [Web Content]. [${site}]. Website 1 of ${DEMO.websites.length}. Double tap for next, swipe up for previous, long press to open, swipe left to go back.`,
+            '9.5'
+          );
+          UI.setDevState('Web Content > ' + site);
+        } else {
+          // Switch to Uber journey
+          SM.phase = 'Home';
+          SM.step = '8.1';
+          SM.journey = '8. Uber Journey';
+          this.setJourney('8. Uber Journey', 'Home');
+          SM.currentCategory = 0;
+          SM.phase = 'Categories';
+          Haptic.fire('deep');
+          const cat = SM.categories[0];
+          this.speakAndShow(
+            `You are in [App Library]. [${cat}]. Category 1 of ${SM.categories.length}.`,
+            '8.2'
+          );
+        }
+      }
+      return;
+    }
+
+    // WEBSITE LIST
+    if (SM.phase === 'WebList') {
+      if (gesture === 'TAP') {
+        const site = DEMO.websites[SM.currentWebsite];
+        Haptic.fire('short');
+        this.speakAndShow(
+          `[${site}]. Website ${SM.currentWebsite + 1} of ${DEMO.websites.length}.`,
+          '9.6'
+        );
+      } else if (gesture === 'DOUBLE_TAP') {
+        SM.currentWebsite = (SM.currentWebsite + 1) % DEMO.websites.length;
+        const site = DEMO.websites[SM.currentWebsite];
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${site}]. Website ${SM.currentWebsite + 1} of ${DEMO.websites.length}.`,
+          '9.7'
+        );
+        UI.setDevState('Web Content > ' + site);
+      } else if (gesture === 'SWIPE_UP') {
+        SM.currentWebsite = SM.currentWebsite === 0 ? DEMO.websites.length - 1 : SM.currentWebsite - 1;
+        const site = DEMO.websites[SM.currentWebsite];
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${site}]. Website ${SM.currentWebsite + 1} of ${DEMO.websites.length}.`,
+          '9.8'
+        );
+        UI.setDevState('Web Content > ' + site);
+      } else if (gesture === 'LONG_PRESS') {
+        // Open website (BBC has articles, others are simulated)
+        const site = DEMO.websites[SM.currentWebsite];
+        Haptic.fire('deep');
+        if (site.toLowerCase() === 'bbc') {
+          SM.phase = 'ArticleList';
+          SM.currentArticle = 0;
+          const article = DEMO.bbcArticles[0];
+          this.speakAndShow(
+            `[BBC] is open. [${article.headline}]. Article 1 of ${DEMO.bbcArticles.length}. Double tap for next article, long press to read.`,
+            '9.9'
+          );
+          UI.setDevState('BBC > ' + article.headline.substring(0, 30) + '...');
+        } else {
+          SM.phase = 'SiteOpen';
+          this.speakAndShow(
+            `[${site}] is open. ⊛ In the full app, headlines from ${site} would load here. Swipe left to go back.`,
+            SM.step
+          );
+        }
+      } else if (gesture === 'TWO_FINGER_LEFT') {
+        SM.phase = 'Home';
+        SM.homePosition = 'web_content';
+        Haptic.fire('short');
+        this.speakAndShow(
+          'You are in the [Home Screen]. You are on [Web Content].',
+          '9.21'
+        );
+        UI.setDevState('Home > Web Content');
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          'You are in the [Home Screen]. You are on [App Library].',
+          '9.22'
+        );
+        UI.setDevState('Home > App Library');
+      }
+      return;
+    }
+
+    // SITE OPEN (non-BBC)
+    if (SM.phase === 'SiteOpen') {
+      if (gesture === 'TWO_FINGER_LEFT') {
+        SM.phase = 'WebList';
+        Haptic.fire('short');
+        const site = DEMO.websites[SM.currentWebsite];
+        this.speakAndShow(
+          `You are in [Web Content]. [${site}]. Website ${SM.currentWebsite + 1} of ${DEMO.websites.length}.`,
+          '9.20'
+        );
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          'You are in the [Home Screen]. You are on [App Library].',
+          '9.22'
+        );
+      }
+      return;
+    }
+
+    // ARTICLE LIST (BBC)
+    if (SM.phase === 'ArticleList') {
+      const articles = DEMO.bbcArticles;
+      if (gesture === 'TAP') {
+        Haptic.fire('short');
+        this.speakAndShow(
+          `[${articles[SM.currentArticle].headline}]. Article ${SM.currentArticle + 1} of ${articles.length}.`,
+          '9.10'
+        );
+      } else if (gesture === 'DOUBLE_TAP') {
+        SM.currentArticle = (SM.currentArticle + 1) % articles.length;
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${articles[SM.currentArticle].headline}]. Article ${SM.currentArticle + 1} of ${articles.length}.`,
+          '9.11'
+        );
+        UI.setDevState('BBC > ' + articles[SM.currentArticle].headline.substring(0, 30) + '...');
+      } else if (gesture === 'SWIPE_UP') {
+        SM.currentArticle = SM.currentArticle === 0 ? articles.length - 1 : SM.currentArticle - 1;
+        Haptic.fire('double');
+        this.speakAndShow(
+          `[${articles[SM.currentArticle].headline}]. Article ${SM.currentArticle + 1} of ${articles.length}.`,
+          '9.12'
+        );
+      } else if (gesture === 'LONG_PRESS') {
+        SM.phase = 'ReadingArticle';
+        SM.currentParagraph = 0;
+        Haptic.fire('deep');
+        const p = articles[SM.currentArticle].paragraphs[0];
+        this.speakAndShow(
+          p + '\n\nTap to repeat, double tap for next paragraph, swipe left to exit.',
+          '9.13'
+        );
+        UI.setDevState('Reading > Para 1');
+      } else if (gesture === 'TWO_FINGER_LEFT') {
+        SM.phase = 'WebList';
+        Haptic.fire('short');
+        this.speakAndShow(
+          `You are in [Web Content]. [BBC]. Website ${SM.currentWebsite + 1} of ${DEMO.websites.length}.`,
+          '9.20'
+        );
+        UI.setDevState('Web Content > BBC');
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          'You are in the [Home Screen]. You are on [App Library].',
+          '9.22'
+        );
+      }
+      return;
+    }
+
+    // READING ARTICLE
+    if (SM.phase === 'ReadingArticle') {
+      const article = DEMO.bbcArticles[SM.currentArticle];
+      const paras = article.paragraphs;
+      if (gesture === 'TAP') {
+        Haptic.fire('short');
+        this.speakAndShow(paras[SM.currentParagraph], '9.14');
+      } else if (gesture === 'DOUBLE_TAP') {
+        if (SM.currentParagraph < paras.length - 1) {
+          SM.currentParagraph++;
+          Haptic.fire('double');
+          this.speakAndShow(paras[SM.currentParagraph], '9.15');
+          UI.setDevState('Reading > Para ' + (SM.currentParagraph + 1));
+        } else {
+          Haptic.fire('long');
+          this.speakAndShow(
+            'End of article. Double tap for next article, or swipe left to go back.',
+            '9.18'
+          );
+          UI.setDevState('End of article');
+        }
+      } else if (gesture === 'SWIPE_UP') {
+        if (SM.currentParagraph > 0) {
+          SM.currentParagraph--;
+          Haptic.fire('double');
+          this.speakAndShow(paras[SM.currentParagraph], '9.17');
+          UI.setDevState('Reading > Para ' + (SM.currentParagraph + 1));
+        }
+      } else if (gesture === 'TWO_FINGER_LEFT') {
+        SM.phase = 'ArticleList';
+        Haptic.fire('short');
+        this.speakAndShow(
+          `You are in [BBC]. [${article.headline}]. Article ${SM.currentArticle + 1} of ${DEMO.bbcArticles.length}.`,
+          '9.19'
+        );
+        UI.setDevState('BBC > Articles');
+      } else if (gesture === 'TWO_FINGER_DOWN') {
+        SM.phase = 'Home';
+        SM.homePosition = 'app_library';
+        Haptic.fire('home');
+        this.speakAndShow(
+          'You are in the [Home Screen]. You are on [App Library].',
+          '9.22'
+        );
+      }
+      return;
+    }
+  },
+};
+
+// ============ INITIALIZATION ============
+document.addEventListener('DOMContentLoaded', () => {
+  UI.init();
+  Speech.init();
+  SpeechRec.init();
+
+  // Start overlay click
+  const overlay = document.getElementById('start-overlay');
+  overlay.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    SM.audioUnlocked = true;
+
+    // Init audio
+    Tones.init();
+    Speech.warmup();
+    Gestures.init();
+
+    // Start Journey 1
+    setTimeout(() => Flows.startWelcome(), 300);
+  });
+
+  overlay.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    overlay.click();
+  });
+
+  // Handle tap to start training from onboarding
+  document.getElementById('app').addEventListener('click', () => {
+    if (!SM.audioUnlocked) return;
+    if (SM.journey === '2. Onboarding' && SM.phase === 'Transition' && SM.awaitingGesture === 'TAP_TO_START_TRAINING') {
+      SM.awaitingGesture = null;
+      Haptic.fire('short');
+      Flows.startGestureTraining();
+    }
+  });
+});
+</script>
+</body>
+</html>
