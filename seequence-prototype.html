@@ -8,19 +8,22 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
 <title>Seequence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
   --black: #000000;
   --white: #FFFFFF;
-  --yellow: #FFD600;
+  --yellow: #FFF500;
   --grey-dot: #555555;
   --grey-light: #888888;
-  --cyan: #00BFFF;
+  --focus-blue: #2F7BFF;
   --amber: #FF8C00;
   --green: #4CAF50;
-  --font: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font: 'Atkinson Hyperlegible', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   --safe-top: env(safe-area-inset-top, 24px);
   --safe-bottom: env(safe-area-inset-bottom, 16px);
 }
@@ -406,10 +409,12 @@ html, body {
   <div id="start-logo">
     <div class="logo-icon">
       <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tap: head dot -->
         <circle cx="52" cy="12" r="10" fill="white"/>
-        <path d="M38 28 C28 28 22 38 26 48 L36 72 C38 78 32 82 28 80 L18 74" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
-        <path d="M62 28 C72 28 78 38 74 48 L58 90 C55 98 48 98 46 90 L36 62" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
-        <path d="M26 48 L42 56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <!-- Swipe Right: horizontal pill -->
+        <rect x="8" y="32" width="68" height="22" rx="11" fill="white"/>
+        <!-- Swipe Down: diagonal bar to lower-right -->
+        <line x1="46" y1="52" x2="68" y2="100" stroke="white" stroke-width="22" stroke-linecap="round"/>
       </svg>
     </div>
     <div class="logo-name">Seequence</div>
@@ -423,10 +428,12 @@ html, body {
   <div id="header">
     <div class="logo-icon">
       <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tap: head dot -->
         <circle cx="52" cy="12" r="10" fill="white"/>
-        <path d="M38 28 C28 28 22 38 26 48 L36 72 C38 78 32 82 28 80 L18 74" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
-        <path d="M62 28 C72 28 78 38 74 48 L58 90 C55 98 48 98 46 90 L36 62" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
-        <path d="M26 48 L42 56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <!-- Swipe Right: horizontal pill -->
+        <rect x="8" y="32" width="68" height="22" rx="11" fill="white"/>
+        <!-- Swipe Down: diagonal bar to lower-right -->
+        <line x1="46" y1="52" x2="68" y2="100" stroke="white" stroke-width="22" stroke-linecap="round"/>
       </svg>
     </div>
     <div id="logo-label">Seequence</div>
@@ -1871,3 +1878,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+<!-- deployed 20260205160903 -->
